@@ -13,7 +13,35 @@
             href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='8' y='8' width='48' height='40' rx='3' fill='%232a2a2a' stroke='%23f0ece3' stroke-width='1.5'/><rect x='12' y='12' width='40' height='32' rx='1' fill='%231a1a1a'/><path d='M20 30 L28 22 L36 30 L44 22 L52 30' stroke='%23f0ece3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/><path d='M24 42 L32 34 L40 42' stroke='%23f0ece3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='32' cy='14' r='3' fill='%23f0ece3'/></svg>"
         />
         <style>
+            /* hover only where a pointer can actually hover, so a tap does not
+               leave a stuck hover state on a touchscreen */
+            @media (hover: hover) {
+                .btn:hover { background: var(--chalk-line); }
+                .btn.on:hover { filter: brightness(1.08); }
+                .chip:hover { background: var(--chalk-line); }
+                .chip.on:hover { filter: brightness(1.08); }
+                .play:hover,
+                .htile:hover,
+                .pact:hover,
+                .ptab:hover { background: var(--chalk-line); }
+                .hmain:hover { filter: brightness(1.06); }
+                .paddsub:hover { color: var(--chalk-ink); border-color: var(--chalk-dim); }
+                .prow:hover { background: rgba(255, 255, 255, 0.04); }
+                .play-del:hover { color: var(--chalk-ink); }
+                .toc a:hover { background: var(--chalk-line); }
+            }
+
             /* ===== CHALK THEME ===== */
+            /* keyboard users had no indication of focus at all */
+            :focus-visible {
+                outline: 3px solid var(--chalk-amber);
+                outline-offset: 2px;
+            }
+            .play:focus-visible,
+            .htile:focus-visible,
+            .hmain:focus-visible { outline-offset: -3px; }
+            .sw:focus-visible { outline-offset: 1px; }
+
             :root {
                 --chalk-bg: #1a1a1a;
                 --chalk-board: #232323;
@@ -32,9 +60,14 @@
                 box-sizing: border-box;
                 -webkit-tap-highlight-color: transparent;
             }
-            html,
-            body {
+            html {
                 height: 100%;
+            }
+            body {
+                /* dvh keeps the bottom bar clear of mobile Safari's toolbar; the
+                   100% before it is the fallback for browsers without dvh. */
+                height: 100%;
+                height: 100dvh;
                 margin: 0;
                 overflow: hidden;
                 overscroll-behavior: none;
@@ -202,8 +235,10 @@
                 flex: 0 0 auto;
             }
             .sw {
-                width: 30px;
-                height: 30px;
+                width: 44px;
+                height: 44px;
+                padding: 7px;
+                background-clip: content-box;
                 border-radius: 50%;
                 border: 2px solid rgba(255, 255, 255, 0.18);
                 flex: 0 0 auto;
@@ -255,7 +290,7 @@
             .ptab {
                 flex: 1;
                 min-width: 50px;
-                height: 34px;
+                height: 44px;
                 border-radius: 9px;
                 background: var(--chalk-surface);
                 font-weight: 700;
@@ -306,7 +341,7 @@
                 gap: 5px;
                 padding: 2px 3px;
                 border-radius: 10px;
-                min-height: 40px;
+                min-height: 48px;
                 transition: background 0.1s;
                 cursor: default;
                 flex-wrap: nowrap;
@@ -378,8 +413,8 @@
                 color: var(--chalk-ink);
             }
             .pact {
-                width: 28px;
-                height: 28px;
+                width: 44px;
+                height: 44px;
                 border-radius: 8px;
                 flex: 0 0 28px;
                 display: flex;
@@ -412,10 +447,10 @@
             }
             .play-del {
                 position: absolute;
-                top: 6px;
-                right: 6px;
-                width: 24px;
-                height: 24px;
+                top: 4px;
+                right: 4px;
+                width: 36px;
+                height: 36px;
                 line-height: 1;
                 border-radius: 6px;
                 background: transparent;
@@ -545,7 +580,7 @@
             }
             .paddsub {
                 width: 100%;
-                height: 34px;
+                height: 44px;
                 margin-top: 8px;
                 border-radius: 9px;
                 border: 1px dashed var(--chalk-line);
@@ -733,7 +768,7 @@
                 padding: 8px 10px;
                 background: rgba(26, 26, 26, 0.94);
                 border-top: 1px solid var(--chalk-line);
-                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
                 overflow-x: auto;
                 scrollbar-width: none;
                 flex-wrap: nowrap;
@@ -769,12 +804,11 @@
                 flex: 0 0 auto;
             }
             #scrim {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 background: rgba(0, 0, 0, 0.6);
                 display: none;
                 z-index: 20;
-                backdrop-filter: blur(2px);
+                -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
             }
             #scrim.show {
                 display: block;
@@ -843,7 +877,7 @@
                 gap: 7px;
             }
             .chip {
-                min-height: 40px;
+                min-height: 44px;
                 padding: 0 14px;
                 border-radius: 10px;
                 background: var(--chalk-surface);
@@ -938,8 +972,7 @@
                 padding: 10px 2px;
             }
             #home {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 z-index: 35;
                 display: none;
                 background: var(--chalk-bg);
@@ -1072,8 +1105,7 @@
                 color: var(--chalk-ink);
             }
             #guide {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 z-index: 40;
                 display: none;
                 background: var(--chalk-bg);
@@ -1093,7 +1125,7 @@
                 gap: 12px;
                 padding: 10px 16px;
                 background: rgba(26, 26, 26, 0.94);
-                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
                 border-bottom: 1px solid var(--chalk-line);
             }
             .gtop h1 {
@@ -1339,12 +1371,11 @@
                 transform: translateX(-50%) translateY(0);
             }
             #tour {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 z-index: 45;
                 display: none;
                 background: rgba(0, 0, 0, 0.85);
-                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
                 align-items: center;
                 justify-content: center;
             }
@@ -1412,8 +1443,7 @@
                 border-color: var(--chalk-amber);
             }
             #tour-spotlight {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 z-index: 44;
                 pointer-events: none;
                 display: none;
@@ -1446,12 +1476,11 @@
                 pointer-events: none;
             }
             #shortcuts {
-                position: fixed;
-                inset: 0;
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
                 z-index: 48;
                 display: none;
                 background: rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
                 align-items: center;
                 justify-content: center;
             }
@@ -1610,9 +1639,9 @@
                     height: 22px;
                 }
                 .pact {
-                    width: 24px;
-                    height: 24px;
-                    flex: 0 0 24px;
+                    width: 40px;
+                    height: 40px;
+                    flex: 0 0 40px;
                 }
                 .pact svg {
                     width: 12px;
@@ -1623,8 +1652,8 @@
                 }
                 .ptab {
                     font-size: 10px;
-                    min-width: 40px;
-                    height: 28px;
+                    min-width: 44px;
+                    height: 40px;
                 }
                 .roster-add input {
                     font-size: 12px;
@@ -1644,8 +1673,8 @@
                     min-height: 42px;
                 }
                 .btn {
-                    min-width: 36px;
-                    height: 36px;
+                    min-width: 42px;
+                    height: 42px;
                     padding: 0 5px;
                     border-radius: 8px;
                 }
@@ -1665,8 +1694,9 @@
                     height: 10px;
                 }
                 .sw {
-                    width: 22px;
-                    height: 22px;
+                    width: 38px;
+                    height: 38px;
+                    padding: 6px;
                 }
             }
             .bar {
@@ -2141,8 +2171,31 @@
                     KEY_PROFILE = 'chalk.profile.v1',
                     KEY_TOUR = 'chalk.tourseen',
                     KEY_PROBE = 'chalk.probe';
+                // chalk.library.v1 already means the same thing here as it did in the
+                // earlier build, so only the tacticsboard.* names need moving. The old
+                // single "current board" has no equivalent in this multi-board model,
+                // so it is deliberately left where it is rather than guessed at.
+                const MIGRATE = [
+                    ['tacticsboard.library.v1', 'chalk.library.v1'],
+                    ['tacticsboard.ui.v1', 'chalk.ui.v1'],
+                    ['tacticsboard.licence.v1', 'chalk.licence.v1']
+                ];
+                function migrateKeys() {
+                    try {
+                        MIGRATE.forEach(function (pair) {
+                            const was = pair[0], now = pair[1];
+                            if (localStorage.getItem(now) === null) {
+                                const v = localStorage.getItem(was);
+                                if (v !== null) {
+                                    localStorage.setItem(now, v);
+                                    localStorage.removeItem(was);
+                                }
+                            }
+                        });
+                    } catch (err) {}
+                }
                 const FILE_VERSION = 1,
-                    LICENCE_VERSION = '2.0';
+                    LICENCE_VERSION = '2.1';
                 const MAX_BOARDS = 60,
                     MAX_UNDO = 40,
                     MAX_UNDO_BYTES = 4000000,
@@ -2184,6 +2237,16 @@
                 const SUBS = 5,
                     APP_VERSION = '1.0';
                 let drafting = null;
+
+            // An interrupted drag used to leave the half-drawn shape on screen for
+            // good, because only pointerup ever cleared it. Anything that covers or
+            // replaces the board calls this instead.
+            function cancelDraw() {
+                const had = !!drafting;
+                drafting = null;
+                drags.clear();
+                if (had) draw();
+            }
                 const drags = new Map();
                 let customPlays = [];
                 let zoom = 1,
@@ -2519,7 +2582,22 @@
                         ? { x: T.mx - (Y - ch / 2) / T.s, y: T.my + (X - cw / 2) / T.s }
                         : { x: T.mx + (X - cw / 2) / T.s, y: T.my + (Y - ch / 2) / T.s };
                 }
-                function radius() {
+                function setCursor(kind) {
+                if (kind) { cv.style.cursor = kind; return; }
+                cv.style.cursor =
+                    tool === 'move' ? 'default' : tool === 'erase' ? 'pointer' : 'crosshair';
+            }
+
+            // "Jack Wilkinson" under a 15px disc is unreadable, so use the surname
+            // where there is one and keep it short.
+            function pinName(name) {
+                const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+                if (!parts.length) return '';
+                const shown = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                return shown.length > 11 ? shown.slice(0, 10) + '\u2026' : shown;
+            }
+
+            function radius() {
                     return Math.max(9, Math.min(20, Math.min(cw, ch) * 0.024));
                 }
 
@@ -2685,7 +2763,7 @@
                             ctx.font = '700 ' + fs + 'px ui-sans-serif,system-ui,-apple-system,sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'top';
-                            const nm = t.name.slice(0, 12);
+                            const nm = pinName(t.name);
                             ctx.lineWidth = Math.max(2.5, fs * 0.32);
                             ctx.lineJoin = 'round';
                             ctx.strokeStyle =
@@ -3276,6 +3354,7 @@
                                 });
                                 dragInfo.solid = collisionSnapshot(ids);
                                 drags.set(e.pointerId, dragInfo);
+                                setCursor('grabbing');
                             } else {
                                 select(null);
                                 selectedMulti = [];
@@ -3301,7 +3380,9 @@
                             }
                             return;
                         }
-                        if (drags.size) return;
+                        let alreadyDrawing = false;
+                drags.forEach(function (d) { if (d.drawing) alreadyDrawing = true; });
+                if (alreadyDrawing) return;
                         const p = toPitch(X, Y);
                         drafting = { tool: tool, color: pen, pts: [p, p] };
                         drags.set(e.pointerId, { drawing: true });
@@ -3361,6 +3442,7 @@
                     const d = drags.get(e.pointerId);
                     if (!d) return;
                     drags.delete(e.pointerId);
+                    if (!drags.size) setCursor();
                     if (isPanning) {
                         isPanning = false;
                         wrap.classList.remove('panning');
@@ -3401,6 +3483,11 @@
                 }
                 cv.addEventListener('pointerup', endPointer, { passive: true });
                 cv.addEventListener('pointercancel', endPointer, { passive: true });
+            cv.addEventListener('lostpointercapture', endPointer, { passive: true });
+            window.addEventListener('blur', cancelDraw);
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) cancelDraw();
+            });
 
                 cv.addEventListener(
                     'wheel',
@@ -3727,13 +3814,32 @@
                     toast('Custom play deleted');
                 }
 
+                // A board nobody has drawn on yet is fine to load a play into.
+                // Anything the coach has actually worked on is not.
+                function boardIsScratch(b) {
+                    if (!b || b.play || b.session) return false;
+                    if (!Array.isArray(b.frames) || b.frames.length !== 1) return false;
+                    return !(b.frames[0].shapes && b.frames[0].shapes.length);
+                }
+
                 function loadPlay(pl) {
                     if (!pl || !Array.isArray(pl.frames) || !pl.frames.length) {
                         toast('That play has no phases');
                         return;
                     }
                     if (playing) stop();
-                    pushUndo();
+                    cancelDraw();
+
+                    // Reloading the play already on screen just refreshes it.
+                    const reloading = board.play && board.play.id === pl.id;
+                    const needsOwnBoard =
+                        !reloading && !boardIsScratch(board) && boardList.length < MAX_BOARDS;
+
+                    if (needsOwnBoard) {
+                        addNewBoard(pl.name);   // switches to it; your board is untouched
+                    } else {
+                        pushUndo();
+                    }
                     const spinner = document.querySelector('.loading-spinner');
                     if (spinner) spinner.classList.add('show');
                     setTimeout(() => {
@@ -3801,7 +3907,10 @@
                             resize();
                             saveBoard();
                             if (spinner) spinner.classList.remove('show');
-                            toast('“' + pl.name + '” loaded — ' + board.frames.length + ' phases');
+                            toast(
+                                '“' + pl.name + '” loaded — ' + board.frames.length + ' phases' +
+                                (needsOwnBoard ? ', on its own board' : ''),
+                            );
                         } catch (err) {
                             if (spinner) spinner.classList.remove('show');
                             toast('Error loading play');
@@ -4331,6 +4440,7 @@
                                         selectedMulti = [];
                                     }
                                     renderTools();
+                                    setCursor();
                                 },
                             }),
                         );
@@ -4373,17 +4483,30 @@
                             icon: 'clear',
                             label: 'Wipe',
                             ghost: true,
-                            aria: 'Clear drawings on this phase',
+                            aria: 'Clear drawings on this phase, or press again for every phase',
                             go: function () {
-                                if (!board.frames[frame].shapes.length) {
-                                    toast('No drawings on this phase');
+                                const here = board.frames[frame].shapes.length;
+                                const elsewhere = board.frames.reduce(function (n, f) {
+                                    return n + f.shapes.length;
+                                }, 0) - here;
+                                if (!here && !elsewhere) {
+                                    toast('Nothing drawn on this board');
                                     return;
                                 }
                                 pushUndo();
-                                board.frames[frame].shapes = [];
+                                if (here) {
+                                    board.frames[frame].shapes = [];
+                                    toast(
+                                        elsewhere
+                                            ? 'Phase cleared \u2014 press again for the other phases'
+                                            : 'Drawings cleared',
+                                    );
+                                } else {
+                                    board.frames.forEach(function (f) { f.shapes = []; });
+                                    toast('All drawings cleared');
+                                }
                                 draw();
                                 saveBoard();
-                                toast('Drawings cleared');
                             },
                         }),
                     );
@@ -4478,6 +4601,12 @@
                     nm.setAttribute('aria-label', 'Name for shirt ' + t.label);
                     nm.addEventListener('input', function () {
                         t.name = nm.value;
+                        // The first name typed turns the labels on, so the team sheet
+                        // shows up on the board without hunting for a setting.
+                        if (nm.value.trim() && !board.showNames) {
+                            board.showNames = true;
+                            toast('Names now shown on the board');
+                        }
                         const roster2 = getRoster(t.team);
                         if (roster2.some((r) => r.name === nm.value)) sel.value = nm.value;
                         else sel.value = '';
@@ -5250,8 +5379,10 @@
                     setOpen(scrim, false);
                     sheet.innerHTML = '';
                     if (was) closeModal(sheet);
+                    draw();
                 }
                 function openSheet(key) {
+                    cancelDraw();
                     sheetKey = key;
                     const titles = {
                         squad: 'Setup and pitch',
@@ -6559,6 +6690,7 @@
                 }
 
                 function openHome() {
+                    cancelDraw();
                     if (playing) stop();
                     closeSheet();
                     select(null);
@@ -6778,6 +6910,7 @@
                     setOpen(homeEl, false);
                     homeEl.innerHTML = '';
                     closeModal(homeEl);
+                    draw();
                 }
                 function homeIsOpen() {
                     return isOpen(homeEl);
@@ -6814,7 +6947,14 @@
 <p>It runs entirely on your device: nothing is sent anywhere, and anything you type — including player names — is stored locally and is your responsibility.</p>
 
 <h2 id="l-warranty">No warranty</h2>
-<p>Provided as-is, with no warranty of any kind, to the extent the law allows. This does not affect your statutory rights.</p>
+<p>Provided as-is, with no warranty of any kind, to the extent the law allows. The Licensor does not promise that it will be free of faults, or that it will keep working on every future device or browser.</p>
+
+<h2 id="l-liability">If something goes wrong</h2>
+<p>Nothing here limits the Licensor's liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited.</p>
+<p>Beyond that, the Licensor's total liability is limited to the amount you paid for this copy. In particular there is no liability for lost or corrupted boards, for time lost, or for any decision taken by you or anyone else on the strength of a picture drawn in CHALK. Keep your own backups: <b>Boards &#8250; Export</b> writes a file you can store wherever you like.</p>
+
+<h2 id="l-rights">Your legal rights</h2>
+<p>If you obtained this copy as a consumer, you have rights where digital content is faulty, not as described, or not of satisfactory quality. Nothing in this notice affects those rights, and nothing in it is meant to.</p>
 
 <p class="gmeta">Questions about this notice should go to the Licensor.</p>
 `;
@@ -7510,6 +7650,7 @@
                 // dropped, a fresh board takes its place, and the user is told what happened.
                 function boot() {
                     storageOK = probeStorage();
+                    migrateKeys();
                     loadProfile();
                     try {
                         loadCustomPlays();
