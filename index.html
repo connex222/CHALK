@@ -812,6 +812,7 @@
             }
             #scrim.show {
                 display: block;
+                animation: scrimIn 0.18s ease-out;
             }
             #sheet {
                 position: fixed;
@@ -831,6 +832,15 @@
             }
             #sheet.show {
                 display: block;
+                animation: sheetIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes scrimIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes sheetIn {
+                from { transform: translateY(18px); opacity: 0.4; }
+                to { transform: translateY(0); opacity: 1; }
             }
             #sheet::-webkit-scrollbar {
                 width: 4px;
@@ -1591,6 +1601,10 @@
                 .loading-spinner .spin {
                     animation-duration: 0s;
                 }
+                #scrim.show,
+                #sheet.show {
+                    animation: none !important;
+                }
             }
             @media (max-width: 560px) {
                 .btn small {
@@ -1619,9 +1633,23 @@
                 .count b {
                     font-size: 12px;
                 }
+                /* Docking the panel beside the pitch on a narrow phone left the pitch squeezed
+                   into a strip barely wider than the panel itself. Floating it over the pitch
+                   instead keeps the full pitch visible underneath while the panel is closed,
+                   and the panel still opens/closes exactly as before via the Team button. */
+                #stage {
+                    position: relative;
+                }
                 #panel {
-                    flex: 0 0 180px;
-                    width: 180px;
+                    flex: 0 0 auto;
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    left: 0;
+                    width: 200px;
+                    max-width: 78vw;
+                    z-index: 6;
+                    box-shadow: 6px 0 22px rgba(0, 0, 0, 0.5);
                     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
                 }
                 .pno {
@@ -2369,6 +2397,7 @@
                         hide: { home: false, away: false },
                         showNames: false,
                         captions: true,
+                        tokenShape: 'disc',
                         area: null,
                         session: null,
                         play: null,
@@ -2740,24 +2769,66 @@
                     }
                     ctx.globalAlpha = 1;
                 }
+                // A simple jersey silhouette (body, two sleeves, a V neckline), traced as one
+                // closed polygon so it can be filled/stroked exactly like the disc it replaces.
+                // Coordinates are in shirt-widths relative to (cx,cy), scaled by `s`.
+                const SHIRT_PTS = [
+                    [-0.16, -1.0],
+                    [-0.52, -0.8],
+                    [-1.02, -0.46],
+                    [-0.78, -0.06],
+                    [-0.58, -0.26],
+                    [-0.58, 1.02],
+                    [0.58, 1.02],
+                    [0.58, -0.26],
+                    [0.78, -0.06],
+                    [1.02, -0.46],
+                    [0.52, -0.8],
+                    [0.16, -1.0],
+                    [0, -0.6],
+                ];
+                function traceShirt(cx, cy, s) {
+                    ctx.beginPath();
+                    SHIRT_PTS.forEach(function (pt, i) {
+                        const X = cx + pt[0] * s,
+                            Y = cy + pt[1] * s;
+                        if (i === 0) ctx.moveTo(X, Y);
+                        else ctx.lineTo(X, Y);
+                    });
+                    ctx.closePath();
+                }
                 function drawToken(t, p, sel) {
                     const q = toScreen(p.x, p.y),
                         R = radius();
+                    let selR = R + 8;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     if (t.type === 'player') {
                         const fill = t.color || (t.team === 'home' ? board.home : board.away);
-                        ctx.beginPath();
-                        ctx.arc(q.x, q.y + 2, R, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(0,0,0,.28)';
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.arc(q.x, q.y, R, 0, Math.PI * 2);
-                        ctx.fillStyle = fill;
-                        ctx.fill();
+                        const shirt = board.tokenShape === 'shirt';
+                        const s = R * 1.05;
+                        if (shirt) selR = s * 1.08;
+                        if (shirt) {
+                            traceShirt(q.x, q.y + 2, s);
+                            ctx.fillStyle = 'rgba(0,0,0,.28)';
+                            ctx.fill();
+                            traceShirt(q.x, q.y, s);
+                            ctx.fillStyle = fill;
+                            ctx.fill();
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(q.x, q.y + 2, R, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(0,0,0,.28)';
+                            ctx.fill();
+                            ctx.beginPath();
+                            ctx.arc(q.x, q.y, R, 0, Math.PI * 2);
+                            ctx.fillStyle = fill;
+                            ctx.fill();
+                        }
                         ctx.lineWidth = Math.max(1.5, R * 0.1);
                         ctx.strokeStyle = inkOn(fill) === INK ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.4)';
                         ctx.stroke();
+                        const bottom = shirt ? s * 1.02 : R;
                         if (board.showNames && t.name) {
                             const fs = Math.max(9, Math.round(R * 0.66));
                             ctx.font = '700 ' + fs + 'px ui-sans-serif,system-ui,-apple-system,sans-serif';
@@ -2768,9 +2839,9 @@
                             ctx.lineJoin = 'round';
                             ctx.strokeStyle =
                                 board.style === 'grass' ? 'rgba(0,0,0,.62)' : 'rgba(255,255,255,.85)';
-                            ctx.strokeText(nm, q.x, q.y + R + 3);
+                            ctx.strokeText(nm, q.x, q.y + bottom + 3);
                             ctx.fillStyle = board.style === 'grass' ? INK : SLATE;
-                            ctx.fillText(nm, q.x, q.y + R + 3);
+                            ctx.fillText(nm, q.x, q.y + bottom + 3);
                         }
                         if (board.numbers && t.label) {
                             ctx.fillStyle = inkOn(fill);
@@ -2780,7 +2851,7 @@
                                 'px ui-sans-serif,system-ui,-apple-system,sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText(t.label.slice(0, 4), q.x, q.y + R * 0.04);
+                            ctx.fillText(t.label.slice(0, 4), q.x, q.y + (shirt ? R * 0.22 : R * 0.04));
                         }
                     } else if (t.type === 'ball') {
                         const r = R * 0.46;
@@ -2860,7 +2931,7 @@
                         ctx.lineWidth = 2.5;
                         ctx.strokeStyle = AMBER;
                         ctx.beginPath();
-                        ctx.arc(q.x, q.y, R + 8, 0, Math.PI * 2);
+                        ctx.arc(q.x, q.y, selR, 0, Math.PI * 2);
                         ctx.stroke();
                         ctx.setLineDash([]);
                     }
@@ -3192,7 +3263,14 @@
                 function resolveCollisions(newX, newY, others, m) {
                     others = others || [];
                     m = m || marks();
-                    const threshold = radius() * 1.8;
+                    // `radius()` is a SCREEN-PIXEL disc size (it scales with canvas CSS size, used
+                    // for drawing/hit-testing), but newX/newY/others here are in PITCH METRES. On a
+                    // large desktop canvas radius() can be 17-20px, which — used directly as a metre
+                    // threshold — made almost every other player on the pitch look "too close",
+                    // causing drags to fling the token around instead of tracking the cursor. Convert
+                    // the pixel radius into metres via the current draw scale (T.s is px/metre) so the
+                    // personal-space gap stays a sane ~2-3m regardless of window size.
+                    const threshold = (radius() / (T.s || 1)) * 1.8;
                     let x = newX,
                         y = newY,
                         tries = 0;
@@ -3218,6 +3296,10 @@
                     return { x: Math.max(-2, Math.min(m.L + 2, x)), y: Math.max(-2, Math.min(m.W + 2, y)) };
                 }
 
+                // `includeMulti` is accepted for call-site clarity (grouped multi-drag vs. a plain
+                // hit test) but grouping itself is decided by the pointerdown handler, which already
+                // filters selectedMulti down to the same team; keeping it here was dead code that
+                // always fell through to the same result regardless of its value.
                 function hitToken(X, Y, includeMulti) {
                     const R = radius() + 14;
                     const check = (t) => {
@@ -3230,16 +3312,7 @@
                     };
                     for (let i = board.tokens.length - 1; i >= 0; i--) {
                         const t = board.tokens[i];
-                        if (check(t)) {
-                            if (includeMulti && selectedMulti.length && t.type === 'player') {
-                                const anySelected = selectedMulti.some((sid) => {
-                                    const st = board.tokens.find((tt) => tt.id === sid);
-                                    return st && st.team === t.team && !st.bench;
-                                });
-                                if (anySelected) return t;
-                            }
-                            return t;
-                        }
+                        if (check(t)) return t;
                     }
                     return null;
                 }
@@ -3470,8 +3543,14 @@
                         return;
                     }
                     if (d.ids) {
-                        if (!d.moved && performance.now() - d.t0 < 500) {
-                            if (undoStack.length) undoStack.pop();
+                        // A tap and a long-press-without-moving are both "nothing actually changed" —
+                        // the undo entry pushed on pointerdown belongs to neither, so it should
+                        // always come back off, not only when the press was under 500ms.
+                        if (!d.moved) {
+                            if (undoStack.length) {
+                                undoStack.pop();
+                                updateUndoButtons();
+                            }
                             const t = board.tokens.find((x) => x.id === d.ids[0]);
                             if (t) {
                                 if (!isShiftDown && !isCtrlDown) selectedMulti = [];
@@ -3816,12 +3895,6 @@
 
                 // A board nobody has drawn on yet is fine to load a play into.
                 // Anything the coach has actually worked on is not.
-                function boardIsScratch(b) {
-                    if (!b || b.play || b.session) return false;
-                    if (!Array.isArray(b.frames) || b.frames.length !== 1) return false;
-                    return !(b.frames[0].shapes && b.frames[0].shapes.length);
-                }
-
                 function loadPlay(pl) {
                     if (!pl || !Array.isArray(pl.frames) || !pl.frames.length) {
                         toast('That play has no phases');
@@ -3830,10 +3903,13 @@
                     if (playing) stop();
                     cancelDraw();
 
-                    // Reloading the play already on screen just refreshes it.
+                    // Reloading the play already on screen just refreshes it. Otherwise a play
+                    // always gets its own board — even an untouched, "scratch" one — so opening a
+                    // play can never silently overwrite whatever a coach already had on screen (a
+                    // board they thought was still blank, or their own drawn arrows) with no way
+                    // back other than reaching for Wipe. Only the board-count cap forces a reuse.
                     const reloading = board.play && board.play.id === pl.id;
-                    const needsOwnBoard =
-                        !reloading && !boardIsScratch(board) && boardList.length < MAX_BOARDS;
+                    const needsOwnBoard = !reloading && boardList.length < MAX_BOARDS;
 
                     if (needsOwnBoard) {
                         addNewBoard(pl.name);   // switches to it; your board is untouched
@@ -3999,6 +4075,10 @@
                     }
                 }
                 function addNewBoard(name) {
+                    if (boardList.length >= MAX_BOARDS) {
+                        toast('You have reached the ' + MAX_BOARDS + '-board limit — delete one first');
+                        return;
+                    }
                     const b = blankBoard('11v11');
                     b.name = name || 'Board ' + (boardList.length + 1);
                     boardList.push(b);
@@ -4240,20 +4320,34 @@
                         if (!q || !shown(t)) return;
                         if (t.type === 'player') {
                             const fill = t.color || (t.team === 'home' ? board.home : board.away);
-                            el('circle', {
-                                cx: q.x,
-                                cy: q.y,
-                                r: R,
-                                fill: fill,
-                                stroke: 'rgba(0,0,0,.45)',
-                                'stroke-width': 0.14,
-                            });
+                            const shirt = board.tokenShape === 'shirt';
+                            const s = R * 1.05;
+                            if (shirt) {
+                                el('polygon', {
+                                    points: SHIRT_PTS.map(function (pt) {
+                                        return (q.x + pt[0] * s).toFixed(3) + ',' + (q.y + pt[1] * s).toFixed(3);
+                                    }).join(' '),
+                                    fill: fill,
+                                    stroke: 'rgba(0,0,0,.45)',
+                                    'stroke-width': 0.14,
+                                });
+                            } else {
+                                el('circle', {
+                                    cx: q.x,
+                                    cy: q.y,
+                                    r: R,
+                                    fill: fill,
+                                    stroke: 'rgba(0,0,0,.45)',
+                                    'stroke-width': 0.14,
+                                });
+                            }
+                            const bottom = shirt ? s * 1.02 : R;
                             if (board.numbers && t.label)
                                 el(
                                     'text',
                                     {
                                         x: q.x,
-                                        y: q.y,
+                                        y: q.y + (shirt ? R * 0.22 : 0),
                                         'text-anchor': 'middle',
                                         'dominant-baseline': 'central',
                                         'font-size': t.label.length > 2 ? 1.1 : 1.6,
@@ -4268,7 +4362,7 @@
                                     'text',
                                     {
                                         x: q.x,
-                                        y: q.y + R + 1.5,
+                                        y: q.y + bottom + 1.5,
                                         'text-anchor': 'middle',
                                         'font-size': 1.1,
                                         'font-family': 'sans-serif',
@@ -4472,7 +4566,10 @@
                     toolsBar.appendChild(sep3);
                     toolsBar.appendChild(btn({ icon: 'undo', label: 'Undo', ghost: true, go: undo }));
                     const redoBtn = btn({ icon: 'undo', label: 'Redo', ghost: true, go: redo });
-                    redoBtn.style.transform = 'scaleX(-1)';
+                    // Flipping the whole button (as before) mirrored the "Redo" text into unreadable
+                    // glyphs too — only the arrow icon should be mirrored.
+                    const redoIcon = redoBtn.querySelector('svg');
+                    if (redoIcon) redoIcon.style.transform = 'scaleX(-1)';
                     toolsBar.appendChild(redoBtn);
                     const uc = document.createElement('span');
                     uc.className = 'undo-counter';
@@ -4976,6 +5073,18 @@
                         );
                     } catch (e) {}
                 }
+                // This used to be written but never read back, so the team panel always relaunched
+                // closed and the image-export toggles always relaunched at their defaults.
+                function loadUI() {
+                    try {
+                        const r = JSON.parse(localStorage.getItem(KEY_UI));
+                        if (r && typeof r === 'object') {
+                            panelOpen = !!r.panel;
+                            imgNotes = r.imgNotes !== false;
+                            imgHi = r.imgHi !== false;
+                        }
+                    } catch (e) {}
+                }
                 const KEY_UI = 'chalk.ui.v1';
 
                 function renderFoot() {
@@ -5464,6 +5573,7 @@
                                     board.format = k;
                                     board.area = null;
                                     board.session = null;
+                                    board.play = null;
                                     panelMode = 'team';
                                     frame = 0;
                                     resetTeams();
@@ -5585,6 +5695,31 @@
                             },
                         ]),
                     );
+                    b.appendChild(h3('Tokens'));
+                    b.appendChild(
+                        rowOf([
+                            {
+                                text: 'Discs',
+                                on: board.tokenShape !== 'shirt',
+                                go: function () {
+                                    board.tokenShape = 'disc';
+                                    openSheet('squad');
+                                    draw();
+                                    saveBoard();
+                                },
+                            },
+                            {
+                                text: 'Shirts',
+                                on: board.tokenShape === 'shirt',
+                                go: function () {
+                                    board.tokenShape = 'shirt';
+                                    openSheet('squad');
+                                    draw();
+                                    saveBoard();
+                                },
+                            },
+                        ]),
+                    );
                     const customSection = document.createElement('div');
                     customSection.innerHTML = '<h3>Custom pitch</h3><div class="row"></div>';
                     const cRow = customSection.querySelector('.row');
@@ -5622,6 +5757,8 @@
                         if (board.area) {
                             pushUndo();
                             board.area = null;
+                            board.session = null;
+                            board.play = null;
                             frame = 0;
                             resetTeams();
                             select(null);
@@ -5662,10 +5799,13 @@
                                 danger: true,
                                 go: function () {
                                     pushUndo();
-                                    const keep = board.frames[frame].shapes;
                                     frame = 0;
+                                    board.play = null;
                                     resetTeams();
-                                    board.frames[0].shapes = keep;
+                                    // Reset both teams now also wipes any drawn arrows/lines, so it
+                                    // gives back a genuinely clean board rather than leaving old
+                                    // drawings stranded against fresh starting positions.
+                                    board.frames[0].shapes = [];
                                     select(null);
                                     selectedMulti = [];
                                     renderFoot();
@@ -5673,7 +5813,7 @@
                                     closeSheet();
                                     draw();
                                     saveBoard();
-                                    toast('Teams reset');
+                                    toast('Teams reset and drawings cleared');
                                 },
                             },
                         ]),
@@ -6510,6 +6650,7 @@
                         numbers: b.numbers !== false,
                         showNames: !!b.showNames,
                         captions: b.captions !== false,
+                        tokenShape: b.tokenShape === 'shirt' ? 'shirt' : 'disc',
                         hide: { home: !!(b.hide && b.hide.home), away: !!(b.hide && b.hide.away) },
                         area: null,
                         session: null,
@@ -6651,6 +6792,12 @@
                     const copy = sanitiseBoard(obj);
                     if (!copy) {
                         toast('That board could not be opened');
+                        return;
+                    }
+                    // Boards beyond MAX_BOARDS are silently dropped the next time the library is
+                    // loaded from storage, so refuse here rather than let one quietly vanish later.
+                    if (boardList.length >= MAX_BOARDS) {
+                        toast('You have reached the ' + MAX_BOARDS + '-board limit — delete one first');
                         return;
                     }
                     copy.name = nstr(name, 80) || copy.name || 'Untitled';
@@ -7410,11 +7557,14 @@
                         let target = null;
                         if (step === 0) target = null;
                         else if (step === 1)
-                            target = document.querySelector('.btn[aria-label="Move players"]');
+                            // aria-label reads "Move players (Shift+drag to pan)" — match on the
+                            // stable prefix so this keeps working if that hint text changes.
+                            target = document.querySelector('.btn[aria-label^="Move players"]');
                         else if (step === 2) target = document.querySelector('.btn[aria-label="Draw a run"]');
                         else if (step === 3)
                             target = document.querySelector('.btn[aria-label="Add a phase"]');
-                        else if (step === 4) target = document.querySelector('.btn[aria-label="Front page"]');
+                        else if (step === 4)
+                            target = document.querySelector('.btn[aria-label="Back to the front page"]');
                         if (target) {
                             const rect = target.getBoundingClientRect();
                             const svgRect = document.querySelector('#tour-spotlight rect.highlight');
@@ -7652,6 +7802,7 @@
                     storageOK = probeStorage();
                     migrateKeys();
                     loadProfile();
+                    loadUI();
                     try {
                         loadCustomPlays();
                     } catch (e) {
