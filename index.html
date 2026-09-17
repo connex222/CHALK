@@ -1382,10 +1382,14 @@
             }
             #toast.has-action {
                 display: flex;
+                flex-wrap: wrap;
                 align-items: center;
-                gap: 10px;
+                justify-content: center;
+                gap: 8px 10px;
                 pointer-events: auto;
                 max-width: calc(100vw - 32px);
+                border-radius: 22px;
+                padding: 9px 14px;
             }
             .toast-action {
                 flex: none;
@@ -1400,6 +1404,15 @@
             }
             .toast-action:hover {
                 filter: brightness(1.06);
+            }
+            .toast-action.secondary {
+                background: transparent;
+                color: var(--chalk-bg);
+                border: 1.5px solid rgba(0, 0, 0, 0.35);
+            }
+            .toast-action.secondary:hover {
+                background: rgba(0, 0, 0, 0.08);
+                filter: none;
             }
             .toast-close {
                 flex: none;
@@ -2364,27 +2377,32 @@
                 }
 
                 let toastTimer = null;
-                // action = { label, go } shows a tappable pill inside the toast (used for "Share"
-                // after a video recording finishes). A plain notice still auto-dismisses quickly,
-                // but an action toast stays up until the user taps the action or the × — a fixed
-                // timeout risked disappearing before a phone user had reacted.
-                function toast(msg, action) {
+                // actions = a single { label, go } or an array of them — one tappable pill per
+                // action inside the toast (used for "Share to WhatsApp" / "Download" after a
+                // video recording finishes, so there's always another way to get the file out).
+                // A plain notice still auto-dismisses quickly, but an action toast stays up until
+                // the user taps an action or the × — a fixed timeout risked disappearing before a
+                // phone user had reacted.
+                function toast(msg, actions) {
+                    const list = actions ? (Array.isArray(actions) ? actions : [actions]) : [];
                     const el = document.getElementById('toast');
                     el.textContent = '';
                     el.appendChild(document.createTextNode(msg));
-                    el.classList.toggle('has-action', !!action);
+                    el.classList.toggle('has-action', list.length > 0);
                     clearTimeout(toastTimer);
-                    if (action) {
-                        const b = document.createElement('button');
-                        b.type = 'button';
-                        b.className = 'toast-action';
-                        b.textContent = action.label;
-                        b.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            setOpen(el, false);
-                            action.go();
+                    if (list.length) {
+                        list.forEach(function (action) {
+                            const b = document.createElement('button');
+                            b.type = 'button';
+                            b.className = 'toast-action' + (action.secondary ? ' secondary' : '');
+                            b.textContent = action.label;
+                            b.addEventListener('click', function (e) {
+                                e.stopPropagation();
+                                setOpen(el, false);
+                                action.go();
+                            });
+                            el.appendChild(b);
                         });
-                        el.appendChild(b);
                         const close = document.createElement('button');
                         close.type = 'button';
                         close.className = 'toast-close';
@@ -6888,21 +6906,34 @@
                     } catch (e) {
                         return false;
                     }
-                    toast('Recording ready', {
-                        label: 'Share to WhatsApp',
-                        go: function () {
-                            navigator
-                                .share({ files: [file], title: 'CHALK', text: boardName() })
-                                .catch(function (err) {
-                                    if (err && err.name === 'AbortError') return; // user closed the share sheet themselves
-                                    // The share sheet didn't take it (unsupported file size/type
-                                    // on this device, etc.) — fall back to a plain download
-                                    // rather than the recording just silently going nowhere.
-                                    downloadBlob(blob, filename);
-                                    toast('Could not open the share sheet — video downloaded instead');
-                                });
+                    // Two ways out, always: the share sheet for a direct send (WhatsApp and
+                    // whatever else is installed), or a plain download for any other route —
+                    // AirDrop, email, saving to Files, a laptop, and so on.
+                    toast('Recording ready', [
+                        {
+                            label: 'Share to WhatsApp',
+                            go: function () {
+                                navigator
+                                    .share({ files: [file], title: 'CHALK', text: boardName() })
+                                    .catch(function (err) {
+                                        if (err && err.name === 'AbortError') return; // user closed the share sheet themselves
+                                        // The share sheet didn't take it (unsupported file size/type
+                                        // on this device, etc.) — fall back to a plain download
+                                        // rather than the recording just silently going nowhere.
+                                        downloadBlob(blob, filename);
+                                        toast('Could not open the share sheet — video downloaded instead');
+                                    });
+                            },
                         },
-                    });
+                        {
+                            label: 'Download',
+                            secondary: true,
+                            go: function () {
+                                downloadBlob(blob, filename);
+                                toast('Video saved');
+                            },
+                        },
+                    ]);
                     return true;
                 }
                 function exportVideo() {
