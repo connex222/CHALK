@@ -1397,13 +1397,17 @@
                 color: var(--chalk-amber-ink);
                 border: none;
                 border-radius: 999px;
-                padding: 6px 14px;
+                padding: 10px 16px;
+                min-height: 40px;
                 font-weight: 800;
                 font-size: 12px;
                 cursor: pointer;
             }
             .toast-action:hover {
                 filter: brightness(1.06);
+            }
+            .toast-action:active {
+                transform: translateY(1px);
             }
             .toast-action.secondary {
                 background: transparent;
@@ -1420,15 +1424,18 @@
                 color: var(--chalk-bg);
                 opacity: 0.7;
                 border: none;
-                width: 26px;
-                height: 26px;
+                width: 36px;
+                height: 36px;
                 border-radius: 999px;
-                font-size: 13px;
+                font-size: 14px;
                 cursor: pointer;
             }
             .toast-close:hover {
                 opacity: 1;
                 background: rgba(0, 0, 0, 0.12);
+            }
+            .toast-close:active {
+                transform: translateY(1px);
             }
             #tour {
                 position: fixed; top: 0; right: 0; bottom: 0; left: 0;
@@ -1949,8 +1956,8 @@
     </head>
     <body>
         <div id="app">
-            <div class="bar" id="tools"></div>
-            <div id="stage">
+            <header class="bar" id="tools"></header>
+            <main id="stage">
                 <aside id="panel" aria-label="Team list"></aside>
                 <div id="wrap">
                     <canvas
@@ -1965,15 +1972,15 @@
                         Double‑click caption to edit · Scroll to zoom
                     </div>
                 </div>
-            </div>
-            <div class="bar" id="foot"></div>
+            </main>
+            <footer class="bar" id="foot"></footer>
         </div>
         <div id="scrim"></div>
         <div id="sheet" role="dialog" aria-modal="true" aria-label="Options"></div>
         <input type="file" id="pick" accept=".json,application/json" hidden />
         <div id="home" role="dialog" aria-modal="true" aria-label="Front page"></div>
         <div id="guide" role="dialog" aria-modal="true" aria-label="How to use CHALK"></div>
-        <div id="toast"></div>
+        <div id="toast" role="status" aria-live="polite"></div>
         <div id="tour-spotlight">
             <svg viewBox="0 0 100 100">
                 <rect class="spot" width="100" height="100" />
@@ -3254,8 +3261,13 @@
                 // to a sub-range of phases (used to record only part of a longer play).
                 function buildFrameDurs(mult, fromIdx, toIdx) {
                     mult = mult || 1;
-                    fromIdx = fromIdx || 0;
-                    toIdx = toIdx == null ? board.frames.length - 1 : toIdx;
+                    const lastIdx = Math.max(0, board.frames.length - 1);
+                    // Clamp defensively: a caller can be holding a phase range picked before
+                    // phases were since deleted (e.g. the persistent Share button calls this
+                    // without the Image sheet re-rendering to correct a stale selection first),
+                    // and an out-of-range index here used to crash the whole export.
+                    fromIdx = fromIdx == null ? 0 : Math.max(0, Math.min(fromIdx, lastIdx));
+                    toIdx = toIdx == null ? lastIdx : Math.max(fromIdx, Math.min(toIdx, lastIdx));
                     const MIN_MS = 500,
                         MAX_MS = 2600,
                         BASE_MS = 500,
@@ -4071,8 +4083,10 @@
                         });
                     });
                     customPlays.push(play);
-                    saveCustomPlays();
-                    toast('Custom play “' + name + '” saved');
+                    // Only claim success once the write actually went through — saveCustomPlays()
+                    // already raises its own warning toast on failure, and that must not be
+                    // immediately overwritten by a false "saved" message here.
+                    if (saveCustomPlays()) toast('Custom play “' + name + '” saved');
                     if (sheetKey === 'plays') openSheet('plays');
                 }
 
@@ -4155,7 +4169,14 @@
                 function saveCustomPlays() {
                     try {
                         localStorage.setItem(KEY_PLAYS, JSON.stringify(customPlays));
-                    } catch (e) {}
+                        return true;
+                    } catch (e) {
+                        // "Save as play" gave no feedback at all on failure, unlike every other
+                        // save path in the app (boards, the named library) — a coach could tap
+                        // it, believe it worked, and lose the play with no warning.
+                        toast('Storage full — could not save this play');
+                        return false;
+                    }
                 }
                 function loadCustomPlays() {
                     try {
@@ -4176,9 +4197,12 @@
                 function deleteCustomPlay(pl) {
                     const i = customPlays.indexOf(pl);
                     if (i >= 0) customPlays.splice(i, 1);
-                    saveCustomPlays();
+                    const ok = saveCustomPlays();
                     if (sheetKey === 'plays') openSheet('plays');
-                    toast('Custom play deleted');
+                    // saveCustomPlays() shows its own "storage full" warning on failure — the
+                    // deletion still applies in memory for this session either way, but don't
+                    // also claim it's durably saved when the write itself just failed.
+                    if (ok) toast('Custom play deleted');
                 }
 
                 // A board nobody has drawn on yet is fine to load a play into.
@@ -7029,8 +7053,9 @@
                     };
                     toast('Recording…');
                     rec.start();
-                    const fromIdx = videoFrom == null ? 0 : videoFrom;
-                    const toIdx = videoTo == null ? board.frames.length - 1 : videoTo;
+                    const lastFrameIdx = Math.max(0, board.frames.length - 1);
+                    const fromIdx = videoFrom == null ? 0 : Math.max(0, Math.min(videoFrom, lastFrameIdx));
+                    const toIdx = videoTo == null ? lastFrameIdx : Math.max(fromIdx, Math.min(videoTo, lastFrameIdx));
                     const mult = videoSlow ? 2 : 1;
                     buildFrameDurs(mult, fromIdx, toIdx);
                     const TITLE_MS = 900;
@@ -8655,6 +8680,7 @@
                         play: play,
                         stop: stop,
                         exportVideo: exportVideo,
+                        saveCustomPlay: saveCustomPlay,
                         timelineTotalMs: timelineTotalMs,
                     };
                     selfTest();
