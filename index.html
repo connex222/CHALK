@@ -182,6 +182,22 @@
                 background: transparent;
                 border-color: var(--chalk-line);
             }
+            .playback-speed {
+                min-width: 72px;
+                padding-left: 9px;
+                padding-right: 9px;
+                font-variant-numeric: tabular-nums;
+            }
+            .playback-speed small {
+                color: var(--chalk-ink);
+                font-size: 10px;
+                letter-spacing: 0.02em;
+                text-transform: none;
+            }
+            .playback-speed.is-fast {
+                border-color: var(--chalk-amber);
+                background: rgba(232, 200, 74, 0.10);
+            }
             .btn.wide {
                 flex-direction: row;
                 gap: 7px;
@@ -714,6 +730,46 @@
                 touch-action: none;
                 width: 100%;
                 height: 100%;
+            }
+            .phase-overview {
+                display: grid;
+                gap: 8px;
+                margin: 4px 0 10px;
+            }
+            .phase-overview-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 9px 10px;
+                border: 1px solid var(--chalk-line);
+                border-radius: 10px;
+                background: var(--chalk-panel-2);
+            }
+            .phase-overview-row.current {
+                border-color: var(--chalk-amber);
+            }
+            .phase-overview-info {
+                min-width: 0;
+                display: grid;
+                gap: 2px;
+            }
+            .phase-overview-info strong {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .phase-overview-info small {
+                opacity: .68;
+            }
+            .phase-overview-actions {
+                display: flex;
+                gap: 4px;
+                flex: 0 0 auto;
+            }
+            .phase-overview-actions .btn {
+                min-width: 34px;
+                padding: 5px 7px;
             }
             .phase {
                 display: flex;
@@ -2249,7 +2305,19 @@
                 // 3. Main application – full logic with all improvements
                 // ================================================================
                 // ---- storage keys and file format: one place, so nothing drifts ----
-                const KEY_BOARDS = 'chalk.boards.v1',
+                // Keep the working-board store scoped to the actual downloaded HTML file.
+                // Chrome can share localStorage between file:// documents, so a newly downloaded
+                // CHALK version could otherwise reopen the previous file's working board.
+                const FILE_STORAGE_SCOPE = (function () {
+                        try {
+                            const path = String(window.location && window.location.pathname || '');
+                            const file = path.split(/[\\/]/).pop() || 'chalk';
+                            return file.toLowerCase().replace(/[^a-z0-9._-]+/g, '_').slice(-120) || 'chalk';
+                        } catch (e) {
+                            return 'chalk';
+                        }
+                    })(),
+                    KEY_BOARDS = 'chalk.boards.v1.' + FILE_STORAGE_SCOPE,
                     KEY_LIB = 'chalk.library.v1',
                     KEY_PLAYS = 'chalk.customplays.v1',
                     KEY_EULA = 'chalk.licence.v1',
@@ -2279,7 +2347,8 @@
                         });
                     } catch (err) {}
                 }
-                const FILE_VERSION = 1,
+                const FILE_VERSION = 8.1,
+                    MODEL_VERSION = 7.4,
                     LICENCE_VERSION = '2.1';
                 const MAX_BOARDS = 60,
                     MAX_UNDO = 40,
@@ -2304,7 +2373,8 @@
                     playTo = 0,
                     playT0 = 0,
                     loop = false,
-                    playingFrame = -1;
+                    playingFrame = -1,
+                    playbackSpeed = 1;
                 // One entry per phase-to-phase transition: how long it takes to play (ms), scaled
                 // by how far things actually move, so a two-metre nudge doesn't take as long as a
                 // full sprint the length of the pitch. Built once when Play starts.
@@ -2320,6 +2390,7 @@
                 // straight line to the end spot. Rebuilt only when the active transition changes.
                 let animPathCache = { aI: -1, paths: null };
                 let sheetKey = null,
+                    lastGoodBoardStore = null,
                     storageOK = true,
                     storageWarned = false;
                 let acceptedThisSession = false,
@@ -2366,7 +2437,8 @@
                     panStartPanY = 0;
 
                 function uid() {
-                    return Math.random().toString(36).slice(2, 9);
+                    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+                    return Math.random().toString(36).slice(2) + Date.now().toString(36);
                 }
 
                 // ---- small DOM helpers: nothing derived from data ever goes through innerHTML ----
@@ -2506,18 +2578,21 @@
                         style: 'grass',
                         home: AMBER,
                         away: KIT_AWAY,
+                        homeName: 'Home',
+                        awayName: 'Away',
                         numbers: true,
                         hide: { home: false, away: false },
                         showNames: false,
                         captions: true,
-                        tokenShape: 'disc',
+                        tokenShape: 'shirt',
                         area: null,
                         session: null,
                         play: null,
                         roster: { home: [], away: [] },
                         tokens: [],
-                        frames: [{ shapes: [] }],
+                        frames: [{ id: uid(), pos: {}, shapes: [] }],
                         name: 'Untitled',
+                        schemaVersion: MODEL_VERSION,
                     };
                     resetTeams(b);
                     return b;
@@ -2552,16 +2627,36 @@
                     b = b || board;
                     const f = FORMATS[b.format] || FORMATS['11v11'],
                         n = f.squad;
-                    const shapes = b.frames[0] ? b.frames[0].shapes : [];
                     b.tokens = [];
-                    b.frames = [{ shapes: shapes }];
+                    b.frames = [{ id: uid(), pos: {}, shapes: [], formation: {} }];
                     const list = FORMATIONS[n];
                     const first = Object.keys(list)[0];
                     addTeam('home', first, b);
                     addTeam('away', first, b);
                     b.tokens.push({ id: uid(), type: 'ball', team: null, label: '' });
+
+                    // A new/reset board is deliberately neutral: no formation is imposed.
+                    // The two starting XIs are parked just outside the opposite bylines so the coach
+                    // can drag them onto the pitch and build the first phase from scratch.
                     const dm = marks(b);
-                    setPos(0, b.tokens[b.tokens.length - 1].id, dm.L / 2, dm.W / 2, b);
+                    const home = squadOf('home', b).filter((t) => !t.bench);
+                    const away = squadOf('away', b).filter((t) => !t.bench);
+                    const bylineOffset = 2.5;
+                    const spread = Math.max(2, dm.L * 0.055);
+                    const centreX = dm.L / 2;
+                    const placeLine = function (players, y) {
+                        players.forEach(function (t, i) {
+                            const x = centreX + (i - (players.length - 1) / 2) * spread;
+                            setPos(0, t.id, Math.max(1, Math.min(dm.L - 1, x)), y, b);
+                        });
+                    };
+                    // Away just outside the top byline, Home just outside the bottom byline.
+                    placeLine(away, -bylineOffset);
+                    placeLine(home, dm.W + bylineOffset);
+                    const ball = b.tokens.find((t) => t.type === 'ball');
+                    if (ball) setPos(0, ball.id, dm.L / 2, dm.W / 2, b);
+                    b.frames[0].formation = {};
+                    normaliseBoardModel(b);
                 }
                 function addTeam(team, formation, b) {
                     b = b || board;
@@ -2606,15 +2701,8 @@
                 }
                 function getPos(fi, id, b) {
                     b = b || board;
-                    for (let i = fi; i >= 0; i--) {
-                        const p = b.frames[i].pos && b.frames[i].pos[id];
-                        if (p) return p;
-                    }
-                    for (let i = fi + 1; i < b.frames.length; i++) {
-                        const p = b.frames[i].pos && b.frames[i].pos[id];
-                        if (p) return p;
-                    }
-                    return null;
+                    const fr = b.frames[fi];
+                    return fr && fr.pos && fr.pos[id] ? fr.pos[id] : null;
                 }
                 function livePos(id, b) {
                     b = b || board;
@@ -3205,9 +3293,152 @@
 
                 // --- Animation pacing and curved-run playback -------------------------------
                 const PATH_TOOLS = { run: 1, pass: 1, dribble: 1 };
-                // Generous on purpose: an arrow is drawn freehand, so its start/end rarely sit
-                // exactly on the token's centre.
+                // Movement arrows are authoritative: each run/dribble belongs to a player and each
+                // pass belongs to the ball. Legacy boards without actorId are migrated once on load.
                 const PATH_MATCH_TOL = 3;
+                function distanceToPoint(a, b) {
+                    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : Infinity;
+                }
+                function inferShapeActorId(shape, fi, b) {
+                    if (!shape || !PATH_TOOLS[shape.tool] || !shape.pts || shape.pts.length < 2) return null;
+                    b = b || board;
+                    if (shape.tool === 'pass') {
+                        const ball = b.tokens.find((t) => t.type === 'ball');
+                        return ball ? ball.id : null;
+                    }
+                    const start = shape.pts[0], end = shape.pts[shape.pts.length - 1];
+                    let best = null, bestScore = Infinity;
+                    b.tokens.forEach(function (tk) {
+                        if (tk.type !== 'player' || tk.bench) return;
+                        const p0 = getPos(fi, tk.id, b), p1 = getPos(Math.min(fi + 1, b.frames.length - 1), tk.id, b);
+                        if (!p0 || !p1) return;
+                        const d0 = distanceToPoint(p0, start), d1 = distanceToPoint(p1, end);
+                        if (d0 > PATH_MATCH_TOL || d1 > PATH_MATCH_TOL) return;
+                        const score = d0 + d1;
+                        if (score < bestScore) { bestScore = score; best = tk.id; }
+                    });
+                    return best;
+                }
+                function shapeActorId(toolName, pts, fi, b) {
+                    if (!PATH_TOOLS[toolName] || !pts || pts.length < 2) return null;
+                    b = b || board;
+                    if (toolName === 'pass') {
+                        const ball = b.tokens.find((t) => t.type === 'ball');
+                        return ball ? ball.id : null;
+                    }
+                    const picked = b.tokens.find((t) => t.id === selected && t.type === 'player' && !t.bench);
+                    if (picked) {
+                        const p = getPos(fi, picked.id, b);
+                        if (p && distanceToPoint(p, pts[0]) <= PATH_MATCH_TOL * 2) return picked.id;
+                    }
+                    return inferShapeActorId({ tool: toolName, pts: pts }, fi, b);
+                }
+                function boardModelIssues(b) {
+                    const issues = [];
+                    if (!b || !Array.isArray(b.tokens) || !Array.isArray(b.frames) || !b.frames.length) {
+                        issues.push('board/frames missing');
+                        return issues;
+                    }
+                    const ids = new Set();
+                    b.tokens.forEach(function (t) {
+                        if (!t || !t.id) issues.push('token missing id');
+                        else if (ids.has(t.id)) issues.push('duplicate token id: ' + t.id);
+                        else ids.add(t.id);
+                    });
+                    const phaseIds = new Set();
+                    b.frames.forEach(function (fr, fi) {
+                        if (!fr || !fr.id) issues.push('phase ' + fi + ' missing id');
+                        else if (phaseIds.has(fr.id)) issues.push('duplicate phase id: ' + fr.id);
+                        else phaseIds.add(fr.id);
+                        if (!fr.transition || typeof fr.transition !== 'object') issues.push('phase ' + fi + ' missing transition');
+                        else {
+                            if (fr.transition.duration != null && (!Number.isFinite(fr.transition.duration) || fr.transition.duration < 250 || fr.transition.duration > 10000))
+                                issues.push('invalid transition duration: ' + fr.id);
+                            if (!['easeInOut'].includes(fr.transition.easing)) issues.push('invalid transition easing: ' + fr.id);
+                        }
+                        b.tokens.forEach(function (tk) {
+                            if (!fr.pos || !fr.pos[tk.id]) issues.push('missing position: ' + tk.id + '@' + fi);
+                        });
+                        (fr.shapes || []).forEach(function (sh) {
+                            if (!sh || !sh.id) issues.push('shape missing id @' + fi);
+                            if (PATH_TOOLS[sh.tool]) {
+                                // Movement on the final phase is drawable but deliberately has no
+                                // actor because it has no outgoing transition to animate.
+                                const finalPhase = fi >= b.frames.length - 1;
+                                if (!sh.actorId) {
+                                    if (!finalPhase) issues.push('movement missing actor: ' + (sh.id || '?'));
+                                } else if (!ids.has(sh.actorId)) issues.push('orphan movement actor: ' + sh.actorId);
+                                else {
+                                    const tk = b.tokens.find((t) => t.id === sh.actorId);
+                                    if (sh.tool === 'pass' && tk.type !== 'ball') issues.push('pass actor is not ball: ' + sh.id);
+                                    if (sh.tool !== 'pass' && tk.type !== 'player') issues.push('run actor is not player: ' + sh.id);
+                                }
+                                if (sh.fromPhaseId && sh.fromPhaseId !== fr.id) issues.push('movement fromPhase mismatch: ' + sh.id);
+                                if (fi < b.frames.length - 1 && sh.toPhaseId && sh.toPhaseId !== b.frames[fi + 1].id) issues.push('movement toPhase mismatch: ' + sh.id);
+                            }
+                        });
+                    });
+                    return issues;
+                }
+                function normaliseBoardModel(b) {
+                    if (!b || !Array.isArray(b.tokens) || !Array.isArray(b.frames) || !b.frames.length) return b;
+                    const tokenIds = new Set(b.tokens.map((t) => t.id));
+                    b.schemaVersion = MODEL_VERSION;
+                    b.frames.forEach(function (fr, fi) {
+                        fr.id = nstr(fr.id, 40) || uid();
+                        fr.name = nstr(fr.name, 80);
+                        fr.pos = fr.pos && typeof fr.pos === 'object' ? fr.pos : {};
+                        const tr = fr.transition && typeof fr.transition === 'object' ? fr.transition : {};
+                        fr.transition = {
+                            duration: Number.isFinite(+tr.duration) ? Math.max(250, Math.min(10000, +tr.duration)) : null,
+                            easing: 'easeInOut',
+                        };
+                        // Migration rule only: older boards may have omitted a position. Once
+                        // normalised, every phase owns an explicit position for every token.
+                        b.tokens.forEach(function (tk) {
+                            if (fr.pos[tk.id]) return;
+                            let source = null;
+                            for (let i = fi - 1; i >= 0 && !source; i--) source = b.frames[i].pos && b.frames[i].pos[tk.id];
+                            for (let i = fi + 1; i < b.frames.length && !source; i++) source = b.frames[i].pos && b.frames[i].pos[tk.id];
+                            if (source) {
+                                fr.pos[tk.id] = { x: source.x, y: source.y };
+                            } else if (tk.type === 'ball') {
+                                const dm = marks(b);
+                                fr.pos[tk.id] = { x: dm.L / 2, y: dm.W / 2 };
+                            } else if (tk.type === 'player') {
+                                const dm = marks(b);
+                                const players = b.tokens.filter((x) => x.type === 'player' && !x.bench);
+                                const idx = Math.max(0, players.indexOf(tk));
+                                const count = Math.max(1, players.length);
+                                const x = dm.L / 2 + (idx - (count - 1) / 2) * Math.max(2, dm.L * 0.055);
+                                const y = tk.team === 'away' ? -2.5 : dm.W + 2.5;
+                                fr.pos[tk.id] = { x: Math.max(1, Math.min(dm.L - 1, x)), y: y };
+                            } else {
+                                fr.pos[tk.id] = { x: 0, y: 0 };
+                            }
+                        });
+                        (fr.shapes || []).forEach(function (sh) {
+                            sh.id = nstr(sh.id, 40) || uid();
+                            if (!PATH_TOOLS[sh.tool]) {
+                                sh.actorId = null;
+                                sh.fromPhaseId = null;
+                                sh.toPhaseId = null;
+                                return;
+                            }
+                            if (!tokenIds.has(sh.actorId)) sh.actorId = inferShapeActorId(sh, fi, b);
+                            if (sh.actorId) {
+                                const tk = b.tokens.find((t) => t.id === sh.actorId);
+                                if (!tk || (sh.tool !== 'pass' && tk.type !== 'player') || (sh.tool === 'pass' && tk.type !== 'ball')) sh.actorId = null;
+                            }
+                            sh.fromPhaseId = fr.id;
+                            sh.toPhaseId = fi < b.frames.length - 1 ? b.frames[fi + 1].id : null;
+                            // A movement on the final phase has no destination phase and therefore
+                            // cannot drive animation. Keep it drawable, but explicitly non-animated.
+                            if (fi >= b.frames.length - 1) sh.actorId = null;
+                        });
+                    });
+                    return b;
+                }
                 function shapeLen(pts) {
                     let L = 0;
                     for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
@@ -3233,23 +3464,20 @@
                 // If a Run/Pass/Dribble arrow was drawn starting at roughly p0 and ending at
                 // roughly p1, a token moving between those two points should travel along it
                 // instead of cutting a straight line through the pitch.
-                function findMovePath(aI, p0, p1) {
+                function findMovePath(aI, tokenId) {
                     const fr = board.frames[aI];
-                    if (!fr || !p0 || !p1) return null;
-                    let best = null,
-                        bestScore = Infinity;
+                    if (!fr || !tokenId) return null;
+                    const tk = board.tokens.find((t) => t.id === tokenId);
+                    if (!tk) return null;
+                    const target = getPos(Math.min(aI + 1, board.frames.length - 1), tokenId);
+                    let best = null, bestScore = Infinity;
                     (fr.shapes || []).forEach(function (sh) {
-                        if (!PATH_TOOLS[sh.tool] || !sh.pts || sh.pts.length < 2) return;
-                        const a = sh.pts[0],
-                            b = sh.pts[sh.pts.length - 1];
-                        const dStart = Math.hypot(a.x - p0.x, a.y - p0.y),
-                            dEnd = Math.hypot(b.x - p1.x, b.y - p1.y);
-                        if (dStart > PATH_MATCH_TOL || dEnd > PATH_MATCH_TOL) return;
-                        const score = dStart + dEnd;
-                        if (score < bestScore) {
-                            bestScore = score;
-                            best = sh.pts;
-                        }
+                        if (!PATH_TOOLS[sh.tool] || sh.actorId !== tokenId || !sh.pts || sh.pts.length < 2) return;
+                        if (tk.type === 'ball' && sh.tool !== 'pass') return;
+                        if (tk.type === 'player' && sh.tool === 'pass') return;
+                        const end = sh.pts[sh.pts.length - 1];
+                        const score = target ? distanceToPoint(target, end) : 0;
+                        if (score < bestScore) { bestScore = score; best = sh.pts; }
                     });
                     return best;
                 }
@@ -3280,13 +3508,14 @@
                             const p0 = getPos(i, tk.id),
                                 p1 = getPos(i + 1, tk.id);
                             if (!p0 || !p1) return;
-                            const path = findMovePath(i, p0, p1);
+                            const path = findMovePath(i, tk.id);
                             const d = path ? shapeLen(path) : Math.hypot(p1.x - p0.x, p1.y - p0.y);
                             if (d > maxDist) maxDist = d;
                         });
-                        frameDurs.push(
-                            Math.max(MIN_MS, Math.min(MAX_MS, BASE_MS + maxDist * PER_METRE)) * mult,
-                        );
+                        const tr = board.frames[i] && board.frames[i].transition;
+                        const explicit = tr && Number.isFinite(tr.duration) ? tr.duration : null;
+                        const duration = explicit == null ? BASE_MS + maxDist * PER_METRE : explicit;
+                        frameDurs.push(Math.max(MIN_MS, Math.min(MAX_MS, duration)) * mult);
                     }
                 }
                 function timelineTotalMs() {
@@ -3350,7 +3579,7 @@
                             board.tokens.forEach(function (tk) {
                                 const p0 = getPos(aI, tk.id),
                                     p1 = getPos(bI, tk.id);
-                                if (p0 && p1) paths[tk.id] = findMovePath(aI, p0, p1);
+                                if (p0 && p1) paths[tk.id] = findMovePath(aI, tk.id);
                             });
                             animPathCache = { aI: aI, paths: paths };
                         }
@@ -3378,7 +3607,9 @@
                                 ? pointAtLen(path, shapeLen(path) * t)
                                 : { x: p0.x + (p1.x - p0.x) * t, y: p0.y + (p1.y - p0.y) * t };
                         });
-                        shapes = a.shapes;
+                        // Tactical drawings belong to the phase currently being shown.
+                        // At the end of the final hold, clear them so the play finishes clean.
+                        shapes = idx >= nTrans && !loop ? [] : (a.shapes || []);
                         capText = a.caption || '';
                     } else {
                         board.tokens.forEach(function (tk) {
@@ -3792,6 +4023,10 @@
                                     ) > 14);
                             if (long) {
                                 pushUndo();
+                                drafting.id = uid();
+                                drafting.actorId = shapeActorId(drafting.tool, drafting.pts, frame, board);
+                                drafting.fromPhaseId = board.frames[frame].id;
+                                drafting.toPhaseId = frame < board.frames.length - 1 ? board.frames[frame + 1].id : null;
                                 board.frames[frame].shapes.push(drafting);
                                 saveBoard();
                             }
@@ -3917,6 +4152,7 @@
                     board.area = s.area || null;
                     board.play = s.play || null;
                     if (s.hide) board.hide = { home: !!s.hide.home, away: !!s.hide.away };
+                    normaliseBoardModel(board);
                     if (frame >= board.frames.length) frame = board.frames.length - 1;
                     if (!board.tokens.some((t) => t.id === selected)) select(null);
                     renderTools();
@@ -3929,10 +4165,37 @@
                     board.tokens = board.tokens.filter((t) => t.id !== id);
                     board.frames.forEach((f) => {
                         if (f.pos) delete f.pos[id];
+                        // Movement is owned data: deleting its actor also deletes the movement.
+                        f.shapes = (f.shapes || []).filter((sh) => sh.actorId !== id);
                     });
+                    normaliseBoardModel(board);
                     if (selected === id) select(null);
                     selectedMulti = selectedMulti.filter((sid) => sid !== id);
                     syncPanel();
+                }
+
+                function phaseTimingLabel(index) {
+                    if (index < 0 || index >= board.frames.length - 1) return 'Timing';
+                    const tr = board.frames[index] && board.frames[index].transition;
+                    const d = tr && Number.isFinite(tr.duration) ? tr.duration : null;
+                    if (d == null) return 'Auto';
+                    if (d <= 800) return 'Quick';
+                    if (d <= 1400) return 'Normal';
+                    return 'Slow';
+                }
+                function cyclePhaseTiming(index) {
+                    if (index < 0 || index >= board.frames.length - 1) return;
+                    const fr = board.frames[index];
+                    if (!fr.transition || typeof fr.transition !== 'object') {
+                        fr.transition = { duration: null, easing: 'easeInOut' };
+                    }
+                    const d = Number.isFinite(fr.transition.duration) ? fr.transition.duration : null;
+                    const next = d == null ? 700 : d <= 800 ? 1200 : d <= 1400 ? 2000 : null;
+                    fr.transition.duration = next;
+                    normaliseBoardModel(board);
+                    saveBoard();
+                    render();
+                    toast('Phase ' + (index + 1) + ' → ' + (index + 2) + ': ' + phaseTimingLabel(index));
                 }
 
                 function addPhase() {
@@ -3944,16 +4207,47 @@
                         if (p) pos[t.id] = { x: p.x, y: p.y };
                     });
                     board.frames.splice(frame + 1, 0, {
+                        id: uid(),
                         pos: pos,
-                        shapes: JSON.parse(JSON.stringify(src.shapes)),
+                        // A new phase inherits player positions, not the previous phase's
+                        // tactical instructions. Each phase gets its own clean drawing layer.
+                        shapes: [],
+                        name: '',
                         formation: Object.assign({}, src.formation),
+                        transition: src.transition ? { ...src.transition } : { duration: null, easing: 'easeInOut' },
                     });
+                    normaliseBoardModel(board);
                     frame++;
                     select(null);
                     renderFoot();
                     draw();
                     saveBoard();
                     toast('Phase ' + (frame + 1) + ' added');
+                }
+                function duplicatePhase() {
+                    pushUndo();
+                    const src = board.frames[frame];
+                    const copy = {
+                        id: uid(),
+                        pos: Object.fromEntries(Object.entries(src.pos || {}).map(([id, p]) => [id, { x: p.x, y: p.y }])),
+                        shapes: (src.shapes || []).map((sh) => ({
+                            ...sh,
+                            id: uid(),
+                            pts: (sh.pts || []).map((p) => ({ x: p.x, y: p.y })),
+                        })),
+                        name: src.name ? src.name + ' copy' : '',
+                        formation: Object.assign({}, src.formation || {}),
+                        transition: src.transition ? { ...src.transition } : { duration: null, easing: 'easeInOut' },
+                        caption: src.caption || '',
+                    };
+                    board.frames.splice(frame + 1, 0, copy);
+                    normaliseBoardModel(board);
+                    frame++;
+                    select(null);
+                    renderFoot();
+                    draw();
+                    saveBoard();
+                    toast('Phase ' + (frame + 1) + ' duplicated');
                 }
                 function deletePhase() {
                     if (board.frames.length < 2) {
@@ -3962,6 +4256,7 @@
                     }
                     pushUndo();
                     board.frames.splice(frame, 1);
+                    normaliseBoardModel(board);
                     frame = Math.max(0, frame - 1);
                     renderFoot();
                     draw();
@@ -3980,6 +4275,7 @@
                     pushUndo();
                     const [phase] = board.frames.splice(from, 1);
                     board.frames.splice(to, 0, phase);
+                    normaliseBoardModel(board);
                     frame = to;
                     select(null);
                     renderFoot();
@@ -4024,6 +4320,16 @@
                 // durationMult slows every transition down together (used for slow-motion
                 // recording). fromIdx/toIdx restrict playback to a sub-range of phases (used
                 // to record only part of a longer play); omitted, it plays the whole board.
+                const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2];
+                function playbackSpeedLabel() {
+                    return playbackSpeed + '×';
+                }
+                function cyclePlaybackSpeed() {
+                    const i = PLAYBACK_SPEEDS.indexOf(playbackSpeed);
+                    playbackSpeed = PLAYBACK_SPEEDS[(i + 1) % PLAYBACK_SPEEDS.length];
+                    renderFoot();
+                    toast('Playback speed: ' + playbackSpeedLabel());
+                }
                 function play(durationMult, fromIdx, toIdx) {
                     if (playing) return;
                     if (board.frames.length < 2) {
@@ -4032,7 +4338,8 @@
                     }
                     fromIdx = fromIdx == null ? 0 : Math.max(0, Math.min(fromIdx, board.frames.length - 1));
                     toIdx = toIdx == null ? board.frames.length - 1 : Math.max(fromIdx, Math.min(toIdx, board.frames.length - 1));
-                    buildFrameDurs(durationMult, fromIdx, toIdx);
+                    const speedMult = durationMult == null ? (1 / playbackSpeed) : durationMult;
+                    buildFrameDurs(speedMult, fromIdx, toIdx);
                     animPathCache = { aI: -1, paths: null };
                     playing = true;
                     playFrom = fromIdx;
@@ -4067,7 +4374,7 @@
                             home: {},
                             away: {},
                             ball: null,
-                            shapes: f.shapes.map((s) => [s.tool, s.color, s.pts.map((p) => [p.x, p.y])]),
+                            shapes: f.shapes.map((s) => [s.tool, s.color, s.pts.map((p) => [p.x, p.y]), s.actorId || null]),
                         })),
                     };
                     board.frames.forEach((f, fi) => {
@@ -4147,7 +4454,7 @@
                             const pts = sh[2].slice(0, 500).map(function (q) {
                                 return [nnum(q && q[0], -60, 220, 0), nnum(q && q[1], -60, 180, 0)];
                             });
-                            if (pts.length > 1) fr.shapes.push([sh[0], ncol(sh[1], INK), pts]);
+                            if (pts.length > 1) fr.shapes.push([sh[0], ncol(sh[1], INK), pts, nstr(sh[3], 40) || null]);
                         });
                         out.frames.push(fr);
                     });
@@ -4284,10 +4591,13 @@
                                             pts: sh[2].map((q) => {
                                                 return { x: +q[0], y: +q[1] };
                                             }),
+                                            id: uid(),
+                                            actorId: nstr(sh[3], 40) || null,
                                         };
                                     });
-                                return { pos: pos, shapes: shapes, caption: f.caption || '' };
+                                return { id: uid(), pos: pos, shapes: shapes, caption: f.caption || '' };
                             });
+                            normaliseBoardModel(board);
                             frame = 0;
                             select(null);
                             closeSheet();
@@ -4365,9 +4675,13 @@
                 }
                 function saveBoards() {
                     try {
-                        localStorage.setItem(KEY_BOARDS, JSON.stringify(boardList));
+                        const serial = JSON.stringify(boardList);
+                        localStorage.setItem(KEY_BOARDS, serial);
+                        lastGoodBoardStore = serial;
+                        return true;
                     } catch (e) {
                         storageFailed();
+                        return false;
                     }
                 }
                 function setCurrentBoard(index) {
@@ -5189,7 +5503,7 @@
                                 '<span class="dot" style="background:' +
                                 board[key] +
                                 '"></span>' +
-                                (key === 'home' ? 'Home' : 'Away');
+                                (key === 'home' ? (board.homeName || 'Home') : (board.awayName || 'Away'));
                         }
                         b.setAttribute('aria-pressed', panelTeam === key ? 'true' : 'false');
                         b.addEventListener('click', function () {
@@ -5547,6 +5861,10 @@
                     cnt.appendChild(document.createTextNode('Phase '));
                     cnt.appendChild(elem('b', null, String(currentFrame + 1)));
                     cnt.appendChild(document.createTextNode(' of ' + board.frames.length));
+                    const currentPhaseName = board.frames[currentFrame] && board.frames[currentFrame].name;
+                    if (currentPhaseName) {
+                        cnt.appendChild(document.createTextNode(' · ' + currentPhaseName));
+                    }
                     const next = btn({
                         icon: 'next',
                         ghost: true,
@@ -5565,7 +5883,20 @@
                     ph.appendChild(prev);
                     ph.appendChild(cnt);
                     ph.appendChild(next);
+                    const timingBtn = document.createElement('button');
+                    timingBtn.className = 'btn ghost';
+                    timingBtn.innerHTML = '<small>' + phaseTimingLabel(frame) + '</small>';
+                    timingBtn.title = frame < board.frames.length - 1
+                        ? 'Set the transition speed from this phase to the next'
+                        : 'Last phase has no outgoing transition';
+                    timingBtn.disabled = frame >= board.frames.length - 1;
+                    timingBtn.style.opacity = timingBtn.disabled ? 0.45 : 1;
+                    timingBtn.addEventListener('click', function () { cyclePhaseTiming(frame); });
+                    ph.appendChild(timingBtn);
                     ph.appendChild(btn({ icon: 'plus', label: 'Phase', aria: 'Add a phase', go: addPhase }));
+                    ph.appendChild(
+                        btn({ icon: 'copy', ghost: true, aria: 'Duplicate this phase', go: duplicatePhase }),
+                    );
                     ph.appendChild(
                         btn({ icon: 'x', ghost: true, aria: 'Delete this phase', go: deletePhase }),
                     );
@@ -5600,6 +5931,13 @@
                             },
                         }),
                     );
+                    const speedBtn = document.createElement('button');
+                    speedBtn.className = 'btn ghost playback-speed' + (playbackSpeed !== 1 ? ' is-fast' : '');
+                    speedBtn.innerHTML = '<small>Speed ' + playbackSpeedLabel() + '</small>';
+                    speedBtn.title = 'Change playback speed: 0.5×, 1×, 1.5× or 2×';
+                    speedBtn.setAttribute('aria-label', 'Playback speed ' + playbackSpeedLabel() + '. Click to change');
+                    speedBtn.addEventListener('click', cyclePlaybackSpeed);
+                    ph.appendChild(speedBtn);
                     footBar.appendChild(ph);
                     const sp2 = document.createElement('div');
                     sp2.className = 'spacer';
@@ -5923,6 +6261,27 @@
                             })),
                         ),
                     );
+                    b.appendChild(h3('Team names'));
+                    const names = document.createElement('div');
+                    names.className = 'row';
+                    ['home', 'away'].forEach(function (team) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.maxLength = 32;
+                        input.value = team === 'home' ? (board.homeName || 'Home') : (board.awayName || 'Away');
+                        input.placeholder = team === 'home' ? 'Home team' : 'Away team';
+                        input.setAttribute('aria-label', (team === 'home' ? 'Home' : 'Away') + ' team name');
+                        input.addEventListener('change', function () {
+                            const value = input.value.trim().slice(0, 32);
+                            if (team === 'home') board.homeName = value || 'Home';
+                            else board.awayName = value || 'Away';
+                            renderPanel();
+                            draw();
+                            saveBoard();
+                        });
+                        names.appendChild(input);
+                    });
+                    b.appendChild(names);
                     b.appendChild(h3('Home kit'));
                     b.appendChild(
                         colourRow(board.home, (c) => {
@@ -6030,6 +6389,135 @@
                             },
                         ]),
                     );
+                    b.appendChild(h3('Phase name'));
+                    const phaseName = document.createElement('input');
+                    phaseName.type = 'text';
+                    phaseName.maxLength = 80;
+                    phaseName.value = board.frames[frame].name || '';
+                    phaseName.placeholder = 'e.g. Starting position, Switch, Finish';
+                    phaseName.setAttribute('aria-label', 'Phase name');
+                    phaseName.addEventListener('change', function () {
+                        board.frames[frame].name = phaseName.value.trim().slice(0, 80);
+                        renderFoot();
+                        draw();
+                        saveBoard();
+                    });
+                    b.appendChild(phaseName);
+                    const phaseNameHint = document.createElement('p');
+                    phaseNameHint.className = 'note';
+                    phaseNameHint.textContent = 'Optional short title shown with the current phase number.';
+                    b.appendChild(phaseNameHint);
+
+                    b.appendChild(h3('Phase note'));
+                    const phaseNote = document.createElement('input');
+                    phaseNote.type = 'text';
+                    phaseNote.maxLength = 300;
+                    phaseNote.value = board.frames[frame].caption || '';
+                    phaseNote.placeholder = 'Optional note for this phase';
+                    phaseNote.setAttribute('aria-label', 'Phase note');
+                    phaseNote.addEventListener('change', function () {
+                        board.frames[frame].caption = phaseNote.value.trim().slice(0, 300);
+                        draw();
+                        saveBoard();
+                    });
+                    b.appendChild(phaseNote);
+                    const phaseHint = document.createElement('p');
+                    phaseHint.className = 'note';
+                    phaseHint.textContent = 'Shown on the board when Phase notes are enabled. You can also double-click the note on the pitch.';
+                    b.appendChild(phaseHint);
+
+                    // V8.1: compact phase overview. This is a workflow aid only; the
+                    // canonical phase/movement model remains unchanged.
+                    b.appendChild(h3('Phase overview'));
+                    const phaseList = document.createElement('div');
+                    phaseList.className = 'phase-overview';
+                    board.frames.forEach(function (phaseItem, phaseIndex) {
+                        const row = document.createElement('div');
+                        row.className = 'phase-overview-row' + (phaseIndex === frame ? ' current' : '');
+
+                        const info = document.createElement('div');
+                        info.className = 'phase-overview-info';
+                        const title = document.createElement('strong');
+                        title.textContent = 'Phase ' + (phaseIndex + 1) + (phaseItem.name ? ' · ' + phaseItem.name : '');
+                        info.appendChild(title);
+                        const meta = document.createElement('small');
+                        const noteText = phaseItem.caption ? 'Note added' : 'No note';
+                        const timingText = phaseIndex < board.frames.length - 1 ? phaseTimingLabel(phaseIndex) : 'End';
+                        meta.textContent = noteText + ' · ' + timingText;
+                        info.appendChild(meta);
+
+                        const actions = document.createElement('div');
+                        actions.className = 'phase-overview-actions';
+                        const jump = document.createElement('button');
+                        jump.type = 'button';
+                        jump.className = 'btn ghost';
+                        jump.textContent = phaseIndex === frame ? 'Current' : 'Open';
+                        jump.disabled = phaseIndex === frame;
+                        jump.addEventListener('click', function () {
+                            goPhase(phaseIndex);
+                            openSheet('squad');
+                        });
+                        actions.appendChild(jump);
+
+                        const up = document.createElement('button');
+                        up.type = 'button';
+                        up.className = 'btn ghost';
+                        up.textContent = '↑';
+                        up.title = 'Move phase up';
+                        up.disabled = phaseIndex === 0;
+                        up.addEventListener('click', function () {
+                            movePhase(phaseIndex, phaseIndex - 1);
+                            openSheet('squad');
+                        });
+                        actions.appendChild(up);
+
+                        const down = document.createElement('button');
+                        down.type = 'button';
+                        down.className = 'btn ghost';
+                        down.textContent = '↓';
+                        down.title = 'Move phase down';
+                        down.disabled = phaseIndex === board.frames.length - 1;
+                        down.addEventListener('click', function () {
+                            movePhase(phaseIndex, phaseIndex + 1);
+                            openSheet('squad');
+                        });
+                        actions.appendChild(down);
+
+                        const duplicate = document.createElement('button');
+                        duplicate.type = 'button';
+                        duplicate.className = 'btn ghost';
+                        duplicate.textContent = 'Copy';
+                        duplicate.title = 'Duplicate this phase';
+                        duplicate.addEventListener('click', function () {
+                            goPhase(phaseIndex);
+                            duplicatePhase();
+                            openSheet('squad');
+                        });
+                        actions.appendChild(duplicate);
+
+                        const remove = document.createElement('button');
+                        remove.type = 'button';
+                        remove.className = 'btn ghost';
+                        remove.textContent = '×';
+                        remove.title = 'Delete this phase';
+                        remove.disabled = board.frames.length < 2;
+                        remove.addEventListener('click', function () {
+                            goPhase(phaseIndex);
+                            deletePhase();
+                            openSheet('squad');
+                        });
+                        actions.appendChild(remove);
+
+                        row.appendChild(info);
+                        row.appendChild(actions);
+                        phaseList.appendChild(row);
+                    });
+                    b.appendChild(phaseList);
+                    const phaseOverviewHint = document.createElement('p');
+                    phaseOverviewHint.className = 'note';
+                    phaseOverviewHint.textContent = 'Use this list to move through the whole play without leaving Setup.';
+                    b.appendChild(phaseOverviewHint);
+
                     b.appendChild(h3('Tokens'));
                     b.appendChild(
                         rowOf([
@@ -6520,7 +7008,7 @@
                                 text: 'Clear this board',
                                 go: function () {
                                     closeSheet();
-                                    newBoard();
+                                    resetCurrentBoard();
                                 },
                             },
                             {
@@ -6572,7 +7060,7 @@
                                     {
                                         app: 'chalk',
                                         kind: 'library',
-                                        version: 1,
+                                        version: FILE_VERSION,
                                         exported: new Date().toISOString(),
                                         boards: [rec],
                                     },
@@ -7112,7 +7600,7 @@
                         id: uid(),
                         name: name,
                         at: Date.now(),
-                        data: JSON.parse(JSON.stringify(board)),
+                        data: JSON.parse(JSON.stringify(normaliseBoardModel(JSON.parse(JSON.stringify(board))))),
                     };
                     list.unshift(rec);
                     writeLibrary(list.slice(0, MAX_BOARDS));
@@ -7156,6 +7644,7 @@
                                 app: 'chalk',
                                 kind: 'board',
                                 version: FILE_VERSION,
+                                schemaVersion: MODEL_VERSION,
                                 exported: new Date().toISOString(),
                                 current: JSON.parse(JSON.stringify(board)),
                             },
@@ -7174,6 +7663,7 @@
                                 app: 'chalk',
                                 kind: 'library',
                                 version: FILE_VERSION,
+                                schemaVersion: MODEL_VERSION,
                                 exported: new Date().toISOString(),
                                 boards: lib,
                                 plays: customPlays,
@@ -7204,6 +7694,7 @@
                                 app: 'chalk',
                                 kind: 'plays',
                                 version: FILE_VERSION,
+                                schemaVersion: MODEL_VERSION,
                                 exported: new Date().toISOString(),
                                 plays: customPlays,
                             },
@@ -7302,15 +7793,18 @@
                 function sanitiseBoard(b) {
                     if (!b || typeof b !== 'object') return null;
                     const out = {
+                        schemaVersion: MODEL_VERSION,
                         format: Object.prototype.hasOwnProperty.call(FORMATS, b.format) ? b.format : '11v11',
                         view: ['full', 'half', 'third'].indexOf(b.view) >= 0 ? b.view : 'full',
                         style: b.style === 'board' ? 'board' : 'grass',
                         home: ncol(b.home, AMBER),
                         away: ncol(b.away, KIT_AWAY),
+                        homeName: nstr(b.homeName, 32) || 'Home',
+                        awayName: nstr(b.awayName, 32) || 'Away',
                         numbers: b.numbers !== false,
                         showNames: !!b.showNames,
                         captions: b.captions !== false,
-                        tokenShape: b.tokenShape === 'shirt' ? 'shirt' : 'disc',
+                        tokenShape: b.tokenShape === 'disc' ? 'disc' : 'shirt',
                         hide: { home: !!(b.hide && b.hide.home), away: !!(b.hide && b.hide.away) },
                         area: null,
                         session: null,
@@ -7387,7 +7881,7 @@
                     });
                     (Array.isArray(b.frames) ? b.frames.slice(0, 40) : []).forEach((f) => {
                         if (!f || typeof f !== 'object') return;
-                        const fr = { pos: {}, shapes: [], caption: nstr(f.caption, 300) };
+                        const fr = { id: nstr(f.id, 40) || uid(), pos: {}, shapes: [], caption: nstr(f.caption, 300) };
                         if (f.formation && typeof f.formation === 'object') {
                             const fm = {};
                             ['home', 'away'].forEach((k) => {
@@ -7415,19 +7909,25 @@
                                     y: nnum(p && p.y, -60, 180, 0),
                                 }));
                             if (pts.length >= 2)
-                                fr.shapes.push({ tool: sh.tool, color: ncol(sh.color, INK), pts: pts });
+                                fr.shapes.push({
+                                    id: nstr(sh.id, 40) || uid(),
+                                    tool: sh.tool,
+                                    color: ncol(sh.color, INK),
+                                    pts: pts,
+                                    actorId: nstr(sh.actorId, 40) || null,
+                                });
                         });
                         out.frames.push(fr);
                     });
                     if (!out.frames.length || !out.tokens.length) return null;
-                    return out;
+                    return normaliseBoardModel(out);
                 }
                 function boardName() {
                     if (board.session && board.session.title) return board.session.title;
                     if (board.play && board.play.name) return board.play.name;
                     return 'board';
                 }
-                function newBoard() {
+                function resetCurrentBoard() {
                     pushUndo();
                     const fresh = blankBoard(FORMATS[board.format] ? board.format : '11v11');
                     board.tokens = fresh.tokens;
@@ -7437,6 +7937,7 @@
                     board.play = null;
                     board.roster = { home: [], away: [] };
                     board.hide = { home: false, away: false };
+                    normaliseBoardModel(board);
                     frame = 0;
                     select(null);
                     selectedMulti = [];
@@ -7475,12 +7976,9 @@
                     if (type === 'player') t.label = nextShirt(team);
                     board.tokens.push(t);
                     const cx = (Math.max(0, v.x0) + Math.min(m.L, v.x1)) / 2;
-                    setPos(
-                        frame,
-                        t.id,
-                        cx + (Math.random() - 0.5) * m.L * 0.12,
-                        m.W / 2 + (Math.random() - 0.5) * m.W * 0.3,
-                    );
+                    const newX = cx + (Math.random() - 0.5) * m.L * 0.12;
+                    const newY = m.W / 2 + (Math.random() - 0.5) * m.W * 0.3;
+                    board.frames.forEach((_, fi) => setPos(fi, t.id, newX, newY));
                     select(t.id);
                     draw();
                     saveBoard();
@@ -7839,12 +8337,12 @@
   <svg viewBox="0 0 240 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 17h176" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="9 8"/><path d="M182 17l-13-7v14z" fill="currentColor"/></svg><span>Pass — the ball travelling</span>
   <svg viewBox="0 0 240 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 17c11-13 22 13 33 0s22 13 33 0 22 13 33 0 22 13 33 0 22 13 33 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M182 17l-13-7v14z" fill="currentColor"/></svg><span>Dribble — carrying it</span>
 </div>
-<p>Drawings belong to the phase you are on. Adding a phase copies them across so you can adjust rather than redraw. <b>Erase</b> removes one line at a time; <b>Wipe</b> clears the lot on that phase.</p>
+<p>Drawings belong to the phase you are on. Adding a phase copies the player positions but starts its tactical drawing layer clear, so each phase has its own runs, passes and dribbles. During Play, the finished phase's instructions disappear as the next phase begins; when the whole play finishes, all tactical drawings are cleared. <b>Erase</b> removes one line at a time; <b>Wipe</b> clears the lot on that phase.</p>
 
 <h2 id="g-phases">Phases and Play</h2>
 <p>This is what turns a still picture into a pattern. A phase is a snapshot of where everyone stands. Build two or more and the board slides the players between them.</p>
 <ol class="steps">
-  <li>Set the starting picture up and draw the intention on it.</li>
+  <li>Start with the clean board: Away are lined along the top, Home along the bottom, and the shirts are ready to drag into position.</li>
   <li>Tap <b>+ Phase</b>. You now have a copy to work on.</li>
   <li>Drag the players to where they should end up.</li>
   <li>Tap <b>Play</b>. Turn <b>Loop</b> on to run it round and round while you talk over it.</li>
@@ -8559,7 +9057,28 @@
                     );
                     check('strings are capped', nstr('abcdef', 3) === 'abc' && nstr(null, 3) === '');
                     check('current board round-trips', !!sanitiseBoard(JSON.parse(JSON.stringify(board))));
-                    check('getPos falls back across phases', !!getPos(0, board.tokens[0].id));
+                    check('board model has no invariant errors', boardModelIssues(board).length === 0);
+                    check('every phase has a transition policy', board.frames.every((f) => !!f.transition && f.transition.easing === 'easeInOut'));
+                    check('transition durations stay within bounds', board.frames.every((f, i) => i === board.frames.length - 1 || f.transition.duration == null || (f.transition.duration >= 250 && f.transition.duration <= 10000)));
+                    check('movement phases are explicit', board.frames.every((f, fi) => (f.shapes || []).every((sh) => !PATH_TOOLS[sh.tool] || (sh.fromPhaseId === f.id && (fi === board.frames.length - 1 || sh.toPhaseId === board.frames[fi + 1].id)) )));
+                    check(
+                        'every phase owns every token position',
+                        board.frames.every((f) => board.tokens.every((t) => !!(f.pos && f.pos[t.id])),),
+                    );
+                    check(
+                        'movement arrows have valid owners',
+                        board.frames.every((f) =>
+                            (f.shapes || []).every((sh) =>
+                                !PATH_TOOLS[sh.tool] || sh.actorId == null || board.tokens.some((t) => t.id === sh.actorId),
+                            ),
+                        ),
+                    );
+                    check('getPos reads the authoritative phase position', !!getPos(0, board.tokens[0].id));
+                    check(
+                        'new phases start with clean tactical drawings',
+                        /shapes:\s*\[\]/.test(addPhase.toString()),
+                    );
+
                     check(
                         'play sanitiser rejects junk',
                         sanitisePlay(null) === null && sanitisePlay({ frames: [] }) === null,
@@ -8658,6 +9177,9 @@
                         },
                         get videoSlow() {
                             return videoSlow;
+                        },
+                        get playbackSpeed() {
+                            return playbackSpeed;
                         },
                         set videoSlow(v) {
                             videoSlow = v;
