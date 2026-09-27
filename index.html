@@ -2019,7 +2019,7 @@
                     <canvas
                         id="cv"
                         tabindex="0"
-                        aria-label="Tactics board. Press P to select the next player, Alt with the arrow keys to move it, the left and right arrow keys to change phase, and space to play."
+                        aria-label="Tactics board. Press P to select the next player, M/R/B/D/L/Z/E for tools, 1–4 for playback speed, F for full screen, Alt with the arrow keys to move it, the left and right arrow keys to change phase, and space to play."
                     >
                         This tactics board needs a browser that supports the HTML canvas element.
                     </canvas>
@@ -2109,6 +2109,14 @@
                     <tr>
                         <td>Alt+arrows</td>
                         <td>Nudge the selection (hold Shift for bigger steps)</td>
+                    </tr>
+                    <tr>
+                        <td>M / R / B / D</td>
+                        <td>Select Move / Run / Pass / Dribble</td>
+                    </tr>
+                    <tr>
+                        <td>L / Z / E</td>
+                        <td>Select Draw / Zone / Erase</td>
                     </tr>
                 </table>
                 <button class="close-shortcuts" id="closeShortcuts">Close</button>
@@ -2318,6 +2326,7 @@
                         }
                     })(),
                     KEY_BOARDS = 'chalk.boards.v1.' + FILE_STORAGE_SCOPE,
+                    KEY_ACTIVE_BOARD = 'chalk.activeboard.v1.' + FILE_STORAGE_SCOPE,
                     KEY_LIB = 'chalk.library.v1',
                     KEY_PLAYS = 'chalk.customplays.v1',
                     KEY_EULA = 'chalk.licence.v1',
@@ -2347,7 +2356,7 @@
                         });
                     } catch (err) {}
                 }
-                const FILE_VERSION = 8.1,
+                const FILE_VERSION = 8.5,
                     MODEL_VERSION = 7.4,
                     LICENCE_VERSION = '2.1';
                 const MAX_BOARDS = 60,
@@ -4655,6 +4664,19 @@
                 document.addEventListener('visibilitychange', function () {
                     if (document.visibilityState === 'hidden') flushSave();
                 });
+                function loadActiveBoardIndex() {
+                    try {
+                        const raw = Number(localStorage.getItem(KEY_ACTIVE_BOARD));
+                        return Number.isInteger(raw) && raw >= 0 ? raw : 0;
+                    } catch (e) {
+                        return 0;
+                    }
+                }
+                function saveActiveBoardIndex() {
+                    try {
+                        localStorage.setItem(KEY_ACTIVE_BOARD, String(currentBoardIndex));
+                    } catch (e) {}
+                }
                 function loadBoards() {
                     try {
                         const raw = localStorage.getItem(KEY_BOARDS);
@@ -4688,6 +4710,7 @@
                     if (index >= 0 && index < boardList.length) {
                         currentBoardIndex = index;
                         board = boardList[index];
+                        saveActiveBoardIndex();
                         frame = 0;
                         selected = null;
                         selectedMulti = [];
@@ -4724,6 +4747,7 @@
                     if (currentBoardIndex >= boardList.length) currentBoardIndex = boardList.length - 1;
                     saveBoards();
                     board = boardList[currentBoardIndex];
+                    saveActiveBoardIndex();
                     frame = 0;
                     selected = null;
                     selectedMulti = [];
@@ -4744,8 +4768,11 @@
                         b.name = 'My first board';
                         boardList = [b];
                         currentBoardIndex = 0;
+                        saveActiveBoardIndex();
                         saveBoards();
                     }
+                    currentBoardIndex = loadActiveBoardIndex();
+                    if (currentBoardIndex >= boardList.length) currentBoardIndex = 0;
                     board = boardList[currentBoardIndex] || boardList[0];
                     if (frame >= board.frames.length) frame = 0;
                     undoStack = [];
@@ -8851,6 +8878,17 @@
                         return;
                     }
                     if (anyOverlayOpen() || shortcutsOpen() || sheetKey) return;
+                    const toolShortcuts = { m: 'move', r: 'run', b: 'pass', d: 'dribble', l: 'pen', z: 'zone', e: 'erase' };
+                    const shortcutTool = toolShortcuts[String(e.key || '').toLowerCase()];
+                    if (shortcutTool) {
+                        e.preventDefault();
+                        tool = shortcutTool;
+                        select(null);
+                        selectedMulti = [];
+                        renderTools();
+                        setCursor();
+                        return;
+                    }
                     if (e.key === 'p' || e.key === 'P') {
                         e.preventDefault();
                         cycleSelection(e.shiftKey ? -1 : 1);
@@ -8866,6 +8904,18 @@
                         e.preventDefault();
                         if (playing) stop();
                         goPhase(frame + 1);
+                        return;
+                    }
+                    if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+                        const speedMap = { '1': 0.5, '2': 1, '3': 1.5, '4': 2 };
+                        playbackSpeed = speedMap[e.key];
+                        renderFoot();
+                        toast('Playback speed: ' + playbackSpeedLabel());
+                        return;
+                    }
+                    if (e.key === 'f' || e.key === 'F') {
+                        e.preventDefault();
+                        toggleFull();
                         return;
                     }
                     if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
@@ -9123,6 +9173,12 @@
                                 p.frames[0].shapes.length === 1
                             );
                         })(),
+                    );
+                    check(
+                        'playback speed stays within supported values',
+                        [0.5, 1, 1.5, 2].includes(playbackSpeed) &&
+                            typeof playbackSpeedLabel() === 'string' &&
+                            playbackSpeedLabel().length > 0,
                     );
                     check('slug is filesystem safe', /^[a-z0-9-]+$/.test(slugify('Press triggers — U14s!')));
                     if (DEBUG) console.log('CHALK self-test\n' + results.join('\n'));
