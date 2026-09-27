@@ -31,6 +31,40 @@
                 .toc a:hover { background: var(--chalk-line); }
             }
 
+            /* ===== v8.6 QA fixes ===== */
+            #sheet .swatches { flex-wrap: wrap; }
+            #sheet input[type='text'],
+            #sheet input:not([type]) {
+                display: block;
+                width: 100%;
+                max-width: 420px;
+                min-height: 46px;
+                margin: 4px 0;
+                border-radius: 10px;
+                border: 1px solid var(--chalk-line);
+                background: var(--chalk-surface);
+                color: var(--chalk-ink);
+                font: 600 16px/1.2 inherit;
+                padding: 0 14px;
+                box-sizing: border-box;
+            }
+            #sheet input[type='text']:focus { border-color: var(--chalk-amber); outline: none; }
+            #resetView {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                z-index: 5;
+                min-height: 44px;
+                display: none;
+            }
+            #resetView.show { display: inline-flex; align-items: center; }
+            .btn:disabled { opacity: 0.35; cursor: default; }
+            @media (max-width: 480px) {
+                #tools .brand,
+                #tools .profile-badge,
+                #tools .undo-counter { display: none; }
+            }
+
             /* ===== CHALK THEME ===== */
             /* keyboard users had no indication of focus at all */
             :focus-visible {
@@ -48,7 +82,7 @@
                 --chalk-surface: #2a2a2a;
                 --chalk-line: #3a3a3a;
                 --chalk-ink: #f0ece3;
-                --chalk-dim: #8a867c;
+                --chalk-dim: #a39f94;
                 --chalk-amber: #e8c84a;
                 --chalk-amber-ink: #1a160a;
                 --chalk-danger: #d97a6a;
@@ -1676,6 +1710,7 @@
                 opacity: 0.5;
                 pointer-events: none;
             }
+            .caption-edit-hint { opacity: 0.85; }
             .undo-counter {
                 font-size: 10px;
                 color: var(--chalk-dim);
@@ -1814,8 +1849,8 @@
                     min-height: 42px;
                 }
                 .btn {
-                    min-width: 42px;
-                    height: 42px;
+                    min-width: 44px;
+                    height: 44px;
                     padding: 0 5px;
                     border-radius: 8px;
                 }
@@ -1835,9 +1870,9 @@
                     height: 10px;
                 }
                 .sw {
-                    width: 38px;
-                    height: 38px;
-                    padding: 6px;
+                    width: 44px;
+                    height: 44px;
+                    padding: 8px;
                 }
             }
             .bar {
@@ -2024,6 +2059,7 @@
                         This tactics board needs a browser that supports the HTML canvas element.
                     </canvas>
                     <div id="editor"></div>
+                    <button type="button" id="resetView" class="chip">Reset view</button>
                     <div class="caption-edit-hint" id="captionHint">
                         Double‑click caption to edit · Scroll to zoom
                     </div>
@@ -2308,6 +2344,15 @@
                     '#7a4a1a',
                 ];
                 const PENS = ['#ffffff', AMBER, '#d97a6a', '#4cc3ff', '#8bcb8a', '#111418'];
+                const COLOUR_NAMES = {
+                    '#e8c84a': 'Amber', '#ffffff': 'White', '#1c1f24': 'Black', '#d97a6a': 'Red',
+                    '#4a7ad8': 'Blue', '#5a9a6a': 'Green', '#7c4aad': 'Purple', '#4ab8d8': 'Sky blue',
+                    '#d94a7a': 'Pink', '#7a4a1a': 'Brown', '#4cc3ff': 'Light blue', '#8bcb8a': 'Light green',
+                    '#111418': 'Black',
+                };
+                function colourName(c) {
+                    return COLOUR_NAMES[String(c).toLowerCase()] || c;
+                }
 
                 // ================================================================
                 // 3. Main application – full logic with all improvements
@@ -2325,7 +2370,11 @@
                             return 'chalk';
                         }
                     })(),
-                    KEY_BOARDS = 'chalk.boards.v1.' + FILE_STORAGE_SCOPE,
+                    KEY_BOARDS_PREFIX = 'chalk.boards.v1.',
+                    KEY_BOARDS = KEY_BOARDS_PREFIX + FILE_STORAGE_SCOPE,
+                    KEY_SAVED_AT_PREFIX = 'chalk.boards.savedat.v1.',
+                    KEY_SAVED_AT = KEY_SAVED_AT_PREFIX + FILE_STORAGE_SCOPE,
+                    KEY_BOARDS_DAMAGED = 'chalk.boards.damaged.v1.' + FILE_STORAGE_SCOPE,
                     KEY_ACTIVE_BOARD = 'chalk.activeboard.v1.' + FILE_STORAGE_SCOPE,
                     KEY_LIB = 'chalk.library.v1',
                     KEY_PLAYS = 'chalk.customplays.v1',
@@ -2356,7 +2405,7 @@
                         });
                     } catch (err) {}
                 }
-                const FILE_VERSION = 8.5,
+                const FILE_VERSION = 8.6,
                     MODEL_VERSION = 7.4,
                     LICENCE_VERSION = '2.1';
                 const MAX_BOARDS = 60,
@@ -2432,6 +2481,13 @@
                 const had = !!drafting;
                 drafting = null;
                 drags.clear();
+                touchPts.clear();
+                pinch = null;
+                if (isPanning) {
+                    isPanning = false;
+                    const w = document.getElementById('wrap');
+                    if (w) w.classList.remove('panning');
+                }
                 if (had) draw();
             }
                 const drags = new Map();
@@ -2445,6 +2501,48 @@
                     panStartPanX = 0,
                     panStartPanY = 0;
 
+                // Pan is held in pitch metres (it used to be screen pixels added straight to metres,
+                // so a small drag threw the pitch off the screen). zoom multiplies the visible extent:
+                // below 1 is zoomed in.
+                const touchPts = new Map();
+                let pinch = null;
+                function viewIsDefault() {
+                    return Math.abs(zoom - 1) < 0.001 && Math.abs(panX) < 0.01 && Math.abs(panY) < 0.01;
+                }
+                function syncResetView() {
+                    const b = document.getElementById('resetView');
+                    if (b) b.classList.toggle('show', !viewIsDefault());
+                }
+                function resetView() {
+                    zoom = 1;
+                    panX = 0;
+                    panY = 0;
+                    isPanning = false;
+                    pinch = null;
+                    const w = document.getElementById('wrap');
+                    if (w) w.classList.remove('panning');
+                    syncResetView();
+                    if (typeof draw === 'function' && board) draw();
+                }
+                function clampView() {
+                    zoom = Math.max(0.2, Math.min(3, zoom));
+                    const v = viewRect();
+                    const lim = Math.max(v.x1 - v.x0, v.y1 - v.y0) * 0.6;
+                    panX = Math.max(-lim, Math.min(lim, panX));
+                    panY = Math.max(-lim, Math.min(lim, panY));
+                    syncResetView();
+                }
+                // Screen-pixel movement -> pitch-metre pan, honouring the portrait rotation.
+                function panByScreen(dX, dY) {
+                    if (T.rot) {
+                        panY -= dX / T.s;
+                        panX += dY / T.s;
+                    } else {
+                        panX -= dX / T.s;
+                        panY -= dY / T.s;
+                    }
+                    clampView();
+                }
                 function uid() {
                     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
                     return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -2534,7 +2632,7 @@
                     const first = node.querySelector(FOCUSABLE);
                     if (first && first.focus)
                         try {
-                            first.focus();
+                            first.focus({ preventScroll: true });
                         } catch (e) {}
                     updateInert();
                 }
@@ -2607,6 +2705,14 @@
                     return b;
                 }
 
+                function parkedPos(b, team, i, count) {
+                    const dm = marks(b);
+                    const n = Math.max(1, count);
+                    const spread = n > 1 ? Math.min(6, (dm.W - 4) / (n - 1)) : 0;
+                    const y = dm.W / 2 + (i - (n - 1) / 2) * spread;
+                    const off = 4;
+                    return { x: team === 'home' ? -off : dm.L + off, y: Math.max(1, Math.min(dm.W - 1, y)) };
+                }
                 function shirtNumbers(count) {
                     const out = [];
                     let n = 1;
@@ -2648,20 +2754,16 @@
                     // The two starting XIs are parked just outside the opposite bylines so the coach
                     // can drag them onto the pitch and build the first phase from scratch.
                     const dm = marks(b);
-                    const home = squadOf('home', b).filter((t) => !t.bench);
-                    const away = squadOf('away', b).filter((t) => !t.bench);
-                    const bylineOffset = 2.5;
-                    const spread = Math.max(2, dm.L * 0.055);
-                    const centreX = dm.L / 2;
-                    const placeLine = function (players, y) {
-                        players.forEach(function (t, i) {
-                            const x = centreX + (i - (players.length - 1) / 2) * spread;
-                            setPos(0, t.id, Math.max(1, Math.min(dm.L - 1, x)), y, b);
-                        });
-                    };
-                    // Away just outside the top byline, Home just outside the bottom byline.
-                    placeLine(away, -bylineOffset);
-                    placeLine(home, dm.W + bylineOffset);
+                    // Each starting XI is parked in a line just beyond its own byline (the spare
+                    // space above and below the pitch on a phone), so nothing starts clipped.
+                    ['home', 'away'].forEach(function (team) {
+                        squadOf(team, b)
+                            .filter((t) => !t.bench)
+                            .forEach(function (t, i, list) {
+                                const p = parkedPos(b, team, i, list.length);
+                                setPos(0, t.id, p.x, p.y, b);
+                            });
+                    });
                     const ball = b.tokens.find((t) => t.type === 'ball');
                     if (ball) setPos(0, ball.id, dm.L / 2, dm.W / 2, b);
                     b.frames[0].formation = {};
@@ -2808,8 +2910,8 @@
                     T.s = T.rot ? sP : sL;
                     const cx = panX,
                         cy = panY;
-                    T.mx = (v.x0 + v.x1) / 2 + cx / zoom;
-                    T.my = (v.y0 + v.y1) / 2 + cy / zoom;
+                    T.mx = (v.x0 + v.x1) / 2 + cx;
+                    T.my = (v.y0 + v.y1) / 2 + cy;
                 }
                 function toScreen(x, y) {
                     return T.rot
@@ -3415,13 +3517,14 @@
                                 const dm = marks(b);
                                 fr.pos[tk.id] = { x: dm.L / 2, y: dm.W / 2 };
                             } else if (tk.type === 'player') {
-                                const dm = marks(b);
-                                const players = b.tokens.filter((x) => x.type === 'player' && !x.bench);
+                                // Counted within the player's own team: counting both teams together
+                                // pushed half a squad off the end and stacked them on one spot.
+                                const team = tk.team === 'away' ? 'away' : 'home';
+                                const players = b.tokens.filter(
+                                    (x) => x.type === 'player' && !x.bench && (x.team === 'away' ? 'away' : 'home') === team,
+                                );
                                 const idx = Math.max(0, players.indexOf(tk));
-                                const count = Math.max(1, players.length);
-                                const x = dm.L / 2 + (idx - (count - 1) / 2) * Math.max(2, dm.L * 0.055);
-                                const y = tk.team === 'away' ? -2.5 : dm.W + 2.5;
-                                fr.pos[tk.id] = { x: Math.max(1, Math.min(dm.L - 1, x)), y: y };
+                                fr.pos[tk.id] = parkedPos(b, team, idx, players.length);
                             } else {
                                 fr.pos[tk.id] = { x: 0, y: 0 };
                             }
@@ -3534,6 +3637,15 @@
                 }
 
                 function render() {
+                    // Defensive: nothing should leave frame/playFrom/playTo out of range any more,
+                    // but a bad index here used to kill the animation loop for good.
+                    const lastFrame = board.frames.length - 1;
+                    if (frame > lastFrame || frame < 0) frame = Math.max(0, Math.min(frame, lastFrame));
+                    if (playing && (playTo > lastFrame || playFrom > lastFrame)) {
+                        playing = false;
+                        playingFrame = -1;
+                        renderFoot();
+                    }
                     computeT();
                     paintPitch();
                     let positions = {},
@@ -3645,7 +3757,14 @@
                         }
                     });
                     drawCaption(capText);
-                    if (playing) requestAnimationFrame(render);
+                    // Share the one pending-frame slot with draw(), so a redraw requested during
+                    // playback can never start a second, parallel animation loop.
+                    if (playing && !raf) {
+                        raf = requestAnimationFrame(function () {
+                            raf = null;
+                            render();
+                        });
+                    }
                 }
                 // The pitch never changes between animation frames, so bake it once and blit it.
                 function pitchCacheKey(b) {
@@ -3869,9 +3988,41 @@
                 cv.addEventListener(
                     'pointerdown',
                     function (e) {
-                        if (playing) return;
+                        if (playing || recordingVideo) return;
                         cv.setPointerCapture(e.pointerId);
                         const { X, Y } = localXY(e);
+                        // Two fingers anywhere = pinch to zoom and drag to pan. Whatever the first
+                        // finger started (a drag, a line) is abandoned and its undo step dropped.
+                        if (e.pointerType === 'touch') {
+                            touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                            if (touchPts.size === 2) {
+                                drags.forEach(function (d) {
+                                    if (d.ids && d.moved) {
+                                        d.ids.forEach(function (id) {
+                                            const o = d.orig[id];
+                                            if (o) setPos(frame, id, o.x, o.y);
+                                        });
+                                        if (undoStack.length && undoStack[undoStack.length - 1] === d.snap) {
+                                            undoStack.pop();
+                                            updateUndoButtons();
+                                        }
+                                    }
+                                });
+                                drags.clear();
+                                drafting = null;
+                                const pts = Array.from(touchPts.values());
+                                pinch = {
+                                    d0: Math.max(10, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y)),
+                                    z0: zoom,
+                                    mx: (pts[0].x + pts[1].x) / 2,
+                                    my: (pts[0].y + pts[1].y) / 2,
+                                };
+                                drags.set(e.pointerId, { pinch: true });
+                                draw();
+                                return;
+                            }
+                            if (touchPts.size > 2) return;
+                        }
                         const hasShift = isShiftDown || e.shiftKey;
                         const hasCtrl = isCtrlDown || e.ctrlKey || e.metaKey;
                         if (
@@ -3881,8 +4032,9 @@
                             isPanning = true;
                             panStartX = e.clientX;
                             panStartY = e.clientY;
-                            panStartPanX = panX;
-                            panStartPanY = panY;
+                            // Registering the pointer is what lets pointermove/pointerup see the pan
+                            // at all; without it the pan never moved and never ended.
+                            drags.set(e.pointerId, { pan: true, lx: e.clientX, ly: e.clientY });
                             wrap.classList.add('panning');
                             return;
                         }
@@ -3910,11 +4062,16 @@
                                         if (ids.indexOf(t.id) < 0) ids.push(t.id);
                                     }
                                 }
-                                pushUndo();
+                                // The undo step is only recorded once the press really becomes a
+                                // drag, so a plain tap no longer wipes the redo history.
                                 const dragInfo = {
                                     ids: ids,
                                     ox: q.x - X,
                                     oy: q.y - Y,
+                                    sx: X,
+                                    sy: Y,
+                                    slop: e.pointerType === 'mouse' ? 3 : 8,
+                                    snap: snapshot(),
                                     moved: false,
                                     t0: performance.now(),
                                 };
@@ -3965,12 +4122,29 @@
                 cv.addEventListener(
                     'pointermove',
                     function (e) {
+                        if (touchPts.has(e.pointerId)) touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                        if (pinch && touchPts.size === 2) {
+                            const pts = Array.from(touchPts.values());
+                            const dNow = Math.max(10, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
+                            computeT();
+                            const mx = (pts[0].x + pts[1].x) / 2,
+                                my = (pts[0].y + pts[1].y) / 2;
+                            panByScreen(mx - pinch.mx, my - pinch.my);
+                            pinch.mx = mx;
+                            pinch.my = my;
+                            zoom = pinch.z0 * (pinch.d0 / dNow);
+                            clampView();
+                            draw();
+                            return;
+                        }
                         const d = drags.get(e.pointerId);
                         if (!d) return;
                         const { X, Y } = localXY(e);
-                        if (isPanning) {
-                            panX = panStartPanX + (e.clientX - panStartX);
-                            panY = panStartPanY + (e.clientY - panStartY);
+                        if (d.pan) {
+                            computeT();
+                            panByScreen(e.clientX - d.lx, e.clientY - d.ly);
+                            d.lx = e.clientX;
+                            d.ly = e.clientY;
                             draw();
                             return;
                         }
@@ -3988,7 +4162,15 @@
                             return;
                         }
                         if (d.ids) {
-                            d.moved = true;
+                            if (!d.moved) {
+                                // A finger always wobbles a little. Below the slop it is still a tap.
+                                if (Math.hypot(X - d.sx, Y - d.sy) < d.slop) return;
+                                d.moved = true;
+                                undoStack.push(d.snap);
+                                trimUndo();
+                                redoStack = [];
+                                updateUndoButtons();
+                            }
                             const p = toPitch(X + d.ox, Y + d.oy);
                             const m = marks(),
                                 lim = 6;
@@ -4010,11 +4192,16 @@
                 );
 
                 function endPointer(e) {
+                    if (touchPts.has(e.pointerId)) {
+                        touchPts.delete(e.pointerId);
+                        if (touchPts.size < 2) pinch = null;
+                    }
                     const d = drags.get(e.pointerId);
                     if (!d) return;
                     drags.delete(e.pointerId);
                     if (!drags.size) setCursor();
-                    if (isPanning) {
+                    if (d.pinch) return;
+                    if (d.pan) {
                         isPanning = false;
                         wrap.classList.remove('panning');
                         return;
@@ -4049,10 +4236,6 @@
                         // the undo entry pushed on pointerdown belongs to neither, so it should
                         // always come back off, not only when the press was under 500ms.
                         if (!d.moved) {
-                            if (undoStack.length) {
-                                undoStack.pop();
-                                updateUndoButtons();
-                            }
                             const t = board.tokens.find((x) => x.id === d.ids[0]);
                             if (t) {
                                 if (!isShiftDown && !isCtrlDown) selectedMulti = [];
@@ -4074,14 +4257,29 @@
                     'wheel',
                     function (e) {
                         e.preventDefault();
-                        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                        const newZoom = Math.max(0.2, Math.min(5, zoom * delta));
-                        zoom = newZoom;
+                        if (playing || recordingVideo) return;
+                        // Scroll up / pinch out zooms in, like every map app.
+                        zoom *= e.deltaY < 0 ? 0.9 : 1.1;
+                        clampView();
                         draw();
                     },
                     { passive: false },
                 );
 
+                // While a video is recording, the canvas IS the video. Any edit, board switch or
+                // phase change would end up in the clip, so everything that changes the board waits.
+                function lockedForRecording() {
+                    if (!recordingVideo) return false;
+                    toast('Recording a video — wait for it to finish');
+                    return true;
+                }
+                // Changing the phase list while an animation is running used to crash render()
+                // and leave the board stuck in "playing" with every tap ignored.
+                function stopForEdit() {
+                    if (lockedForRecording()) return false;
+                    if (playing) stop();
+                    return true;
+                }
                 function validateNumber(team, label, currentId) {
                     const existing = board.tokens.find(
                         (t) =>
@@ -4115,6 +4313,7 @@
                     updateUndoButtons();
                 }
                 function undo() {
+                    if (!stopForEdit()) return;
                     if (!undoStack.length) {
                         toast('Nothing to undo');
                         return;
@@ -4127,6 +4326,7 @@
                     updateUndoButtons();
                 }
                 function redo() {
+                    if (!stopForEdit()) return;
                     if (!redoStack.length) {
                         toast('Nothing to redo');
                         return;
@@ -4194,6 +4394,8 @@
                 }
                 function cyclePhaseTiming(index) {
                     if (index < 0 || index >= board.frames.length - 1) return;
+                    if (!stopForEdit()) return;
+                    pushUndo();
                     const fr = board.frames[index];
                     if (!fr.transition || typeof fr.transition !== 'object') {
                         fr.transition = { duration: null, easing: 'easeInOut' };
@@ -4208,6 +4410,7 @@
                 }
 
                 function addPhase() {
+                    if (!stopForEdit()) return;
                     pushUndo();
                     const src = board.frames[frame];
                     const pos = {};
@@ -4234,6 +4437,7 @@
                     toast('Phase ' + (frame + 1) + ' added');
                 }
                 function duplicatePhase() {
+                    if (!stopForEdit()) return;
                     pushUndo();
                     const src = board.frames[frame];
                     const copy = {
@@ -4259,6 +4463,7 @@
                     toast('Phase ' + (frame + 1) + ' duplicated');
                 }
                 function deletePhase() {
+                    if (!stopForEdit()) return;
                     if (board.frames.length < 2) {
                         toast('Keep at least one phase');
                         return;
@@ -4273,6 +4478,7 @@
                 }
                 function goPhase(i) {
                     if (i < 0 || i >= board.frames.length) return;
+                    if (lockedForRecording()) return;
                     frame = i;
                     if (playing) playingFrame = frame;
                     select(null);
@@ -4281,6 +4487,7 @@
                 }
                 function movePhase(from, to) {
                     if (from === to || to < 0 || to >= board.frames.length) return;
+                    if (!stopForEdit()) return;
                     pushUndo();
                     const [phase] = board.frames.splice(from, 1);
                     board.frames.splice(to, 0, phase);
@@ -4368,6 +4575,22 @@
 
                 function saveCustomPlay(name) {
                     if (!name) return;
+                    const seen = { home: {}, away: {} };
+                    const clash = board.tokens.find(function (t) {
+                        if (t.type !== 'player' || t.bench || !seen[t.team]) return false;
+                        const k = String(t.label || '').trim();
+                        if (!k || seen[t.team][k]) return true;
+                        seen[t.team][k] = true;
+                        return false;
+                    });
+                    if (clash) {
+                        toast(
+                            (String(clash.label || '').trim()
+                                ? 'Two ' + (clash.team === 'home' ? 'home' : 'away') + ' players are both ' + clash.label
+                                : 'A player has no number') + ' — fix it before saving the play',
+                        );
+                        return;
+                    }
                     const play = {
                         id: 'custom-' + uid(),
                         group: 'Custom plays',
@@ -4521,6 +4744,11 @@
                     if (ok) toast('Custom play deleted');
                 }
 
+                // Boards holding a play exactly as it was loaded (this session only).
+                const pristinePlays = new WeakMap();
+                function isUntouchedPlayBoard(b) {
+                    return !!(b && b.play && pristinePlays.has(b) && pristinePlays.get(b) === snapshot(b));
+                }
                 // A board nobody has drawn on yet is fine to load a play into.
                 // Anything the coach has actually worked on is not.
                 function loadPlay(pl) {
@@ -4536,8 +4764,18 @@
                     // play can never silently overwrite whatever a coach already had on screen (a
                     // board they thought was still blank, or their own drawn arrows) with no way
                     // back other than reaching for Wipe. Only the board-count cap forces a reuse.
+                    if (lockedForRecording()) return;
                     const reloading = board.play && board.play.id === pl.id;
-                    const needsOwnBoard = !reloading && boardList.length < MAX_BOARDS;
+                    // Browsing the library used to create one board per play opened (32 plays = 33
+                    // boards) until the 60 cap, after which it silently overwrote your current board.
+                    // Now a play board nobody has touched since it was loaded is simply reused, and
+                    // at the cap nothing is overwritten.
+                    const reusable = !reloading && isUntouchedPlayBoard(board);
+                    if (!reloading && !reusable && boardList.length >= MAX_BOARDS) {
+                        toast('You have ' + MAX_BOARDS + ' boards — delete one on the front page to open another play');
+                        return;
+                    }
+                    const needsOwnBoard = !reloading && !reusable;
 
                     if (needsOwnBoard) {
                         addNewBoard(pl.name);   // switches to it; your board is untouched
@@ -4613,8 +4851,10 @@
                             renderTools();
                             renderFoot();
                             renderPanel();
+                            resetView();
                             resize();
                             saveBoard();
+                            pristinePlays.set(board, snapshot(board));
                             if (spinner) spinner.classList.remove('show');
                             toast(
                                 '“' + pl.name + '” loaded — ' + board.frames.length + ' phases' +
@@ -4677,29 +4917,102 @@
                         localStorage.setItem(KEY_ACTIVE_BOARD, String(currentBoardIndex));
                     } catch (e) {}
                 }
-                function loadBoards() {
+                // Anything that cannot be read is kept, untouched, under its own key before a fresh
+                // board is saved over it — and the user gets a one-tap way to download it.
+                let bootNotice = null;
+                function keepDamaged(raw, lost) {
+                    const key = KEY_BOARDS_DAMAGED + '.' + Date.now();
                     try {
-                        const raw = localStorage.getItem(KEY_BOARDS);
-                        if (!raw) return false;
-                        const parsed = JSON.parse(raw);
-                        if (!Array.isArray(parsed) || !parsed.length) return false;
-                        const clean = [];
-                        parsed.slice(0, MAX_BOARDS).forEach(function (rec) {
-                            const b = sanitiseBoard(rec);
-                            if (b) clean.push(b);
-                        });
-                        if (!clean.length) return false;
-                        boardList = clean;
-                        return true;
+                        localStorage.setItem(key, raw);
+                    } catch (e) {}
+                    bootNotice = {
+                        msg:
+                            lost === 'all'
+                                ? 'Your saved boards could not be read. A copy of the damaged data has been kept.'
+                                : lost + ' saved board' + (lost === 1 ? '' : 's') + ' could not be read. A copy has been kept.',
+                        raw: raw,
+                    };
+                }
+                // Saved boards are scoped to the file name, so a new CHALK_vX file opens empty.
+                // If this file has never saved anything, bring across the newest copy another
+                // CHALK file left on this device. It is a copy: the old file keeps its own boards.
+                const CARRY_ACROSS_VERSIONS = true;
+                function findOlderStore() {
+                    try {
+                        let best = null,
+                            bestAt = -1;
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const k = localStorage.key(i);
+                            if (!k || k.indexOf(KEY_BOARDS_PREFIX) !== 0 || k === KEY_BOARDS) continue;
+                            const at = Number(localStorage.getItem(KEY_SAVED_AT_PREFIX + k.slice(KEY_BOARDS_PREFIX.length))) || 0;
+                            // No timestamp (files before v8.6): fall back to name order, which
+                            // puts CHALK_v8_5 after CHALK_v8_4.
+                            if (!best || at > bestAt || (at === bestAt && k > best)) {
+                                best = k;
+                                bestAt = at;
+                            }
+                        }
+                        return best;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                function loadBoards() {
+                    let raw = null,
+                        carried = null;
+                    try {
+                        raw = localStorage.getItem(KEY_BOARDS);
+                        if (!raw && CARRY_ACROSS_VERSIONS) {
+                            carried = findOlderStore();
+                            if (carried) raw = localStorage.getItem(carried);
+                        }
                     } catch (e) {
                         return false;
                     }
+                    if (!raw) return false;
+                    let parsed;
+                    try {
+                        parsed = JSON.parse(raw);
+                    } catch (e) {
+                        if (!carried) keepDamaged(raw, 'all');
+                        return false;
+                    }
+                    if (!Array.isArray(parsed) || !parsed.length) {
+                        if (!carried && raw !== '[]') keepDamaged(raw, 'all');
+                        return false;
+                    }
+                    const clean = [];
+                    let dropped = 0;
+                    parsed.slice(0, MAX_BOARDS).forEach(function (rec) {
+                        let b = null;
+                        try {
+                            b = sanitiseBoard(rec);
+                        } catch (e) {
+                            b = null;
+                        }
+                        if (b) clean.push(b);
+                        else dropped++;
+                    });
+                    if (!carried && dropped) keepDamaged(raw, clean.length ? dropped : 'all');
+                    if (!clean.length) return false;
+                    boardList = clean;
+                    if (carried) {
+                        const from = carried.slice(KEY_BOARDS_PREFIX.length);
+                        bootNotice = {
+                            msg: 'Brought across ' + clean.length + ' board' + (clean.length === 1 ? '' : 's') + ' from ' + from,
+                        };
+                        saveBoards();
+                    }
+                    return true;
                 }
                 function saveBoards() {
                     try {
                         const serial = JSON.stringify(boardList);
                         localStorage.setItem(KEY_BOARDS, serial);
                         lastGoodBoardStore = serial;
+                        try {
+                            localStorage.setItem(KEY_SAVED_AT, String(Date.now()));
+                        } catch (e2) {}
                         return true;
                     } catch (e) {
                         storageFailed();
@@ -4707,7 +5020,10 @@
                     }
                 }
                 function setCurrentBoard(index) {
+                    if (lockedForRecording()) return;
                     if (index >= 0 && index < boardList.length) {
+                        cancelDraw();
+                        resetView();
                         currentBoardIndex = index;
                         board = boardList[index];
                         saveActiveBoardIndex();
@@ -4728,6 +5044,7 @@
                     }
                 }
                 function addNewBoard(name) {
+                    if (lockedForRecording()) return;
                     if (boardList.length >= MAX_BOARDS) {
                         toast('You have reached the ' + MAX_BOARDS + '-board limit — delete one first');
                         return;
@@ -4743,8 +5060,18 @@
                         toast('Cannot delete the last board');
                         return;
                     }
+                    if (lockedForRecording()) return;
+                    if (index < 0 || index >= boardList.length) return;
+                    const wasCurrent = index === currentBoardIndex;
                     boardList.splice(index, 1);
+                    // Deleting a board listed above the one you are on used to shift you onto the
+                    // next board down. Keep pointing at the same board unless it was the one deleted.
+                    if (index < currentBoardIndex) currentBoardIndex--;
                     if (currentBoardIndex >= boardList.length) currentBoardIndex = boardList.length - 1;
+                    if (wasCurrent) {
+                        cancelDraw();
+                        resetView();
+                    }
                     saveBoards();
                     board = boardList[currentBoardIndex];
                     saveActiveBoardIndex();
@@ -5155,10 +5482,16 @@
                     if (o.icon) b.innerHTML = icon(o.icon);
                     if (o.label) b.appendChild(elem('small', null, o.label));
                     b.setAttribute('aria-label', o.aria || o.label || '');
-                    if (o.on) b.setAttribute('aria-pressed', 'true');
+                    if ('on' in o) b.setAttribute('aria-pressed', o.on ? 'true' : 'false');
                     if (o.disabled) b.disabled = true;
                     b.addEventListener('click', o.go);
                     return b;
+                }
+                // Phones in portrait: put the controls a thumb needs first in each scrolling bar.
+                const narrowMedia =
+                    typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 560px), (max-height: 500px)') : null;
+                function narrowUI() {
+                    return !!(narrowMedia && narrowMedia.matches);
                 }
                 const toolsBar = document.getElementById('tools'),
                     footBar = document.getElementById('foot');
@@ -5207,7 +5540,8 @@
                         const s = document.createElement('button');
                         s.className = 'sw' + (pen === c ? ' on' : '');
                         s.style.background = c;
-                        s.setAttribute('aria-label', 'Pen colour ' + c);
+                        s.setAttribute('aria-label', 'Pen colour: ' + colourName(c));
+                        s.setAttribute('aria-pressed', pen === c ? 'true' : 'false');
                         s.addEventListener('click', function () {
                             pen = c;
                             renderTools();
@@ -5223,7 +5557,8 @@
                     const sep3 = document.createElement('div');
                     sep3.className = 'sep';
                     toolsBar.appendChild(sep3);
-                    toolsBar.appendChild(btn({ icon: 'undo', label: 'Undo', ghost: true, go: undo }));
+                    const undoBtn = btn({ icon: 'undo', label: 'Undo', ghost: true, go: undo });
+                    toolsBar.appendChild(undoBtn);
                     const redoBtn = btn({ icon: 'undo', label: 'Redo', ghost: true, go: redo });
                     // Flipping the whole button (as before) mirrored the "Redo" text into unreadable
                     // glyphs too — only the arrow icon should be mirrored.
@@ -5270,6 +5605,10 @@
                     spinner.className = 'loading-spinner';
                     spinner.innerHTML = '<span class="spin"></span><span>Loading…</span>';
                     toolsBar.appendChild(spinner);
+                    if (narrowUI()) {
+                        toolsBar.insertBefore(undoBtn, sep);
+                        toolsBar.insertBefore(redoBtn, sep);
+                    }
                 }
 
                 function teamToggle(team) {
@@ -5837,7 +6176,7 @@
                     ph.className = 'phase';
                     const dragArea = document.createElement('div');
                     dragArea.className = 'phase-drag-area';
-                    dragArea.innerHTML = '<span class="handle">⠿</span>';
+                    dragArea.innerHTML = '<span class="handle" aria-hidden="true">⠿</span>';
                     dragArea.draggable = true;
                     dragArea.dataset.index = frame;
                     dragArea.addEventListener('dragstart', function (e) {
@@ -5863,6 +6202,8 @@
                     upArrow.innerHTML = '▲';
                     upArrow.style.fontSize = '12px';
                     upArrow.style.padding = '0 4px';
+                    upArrow.setAttribute('aria-label', 'Move this phase earlier');
+                    upArrow.disabled = frame === 0;
                     upArrow.addEventListener('click', function () {
                         if (frame > 0) movePhase(frame, frame - 1);
                     });
@@ -5871,6 +6212,8 @@
                     downArrow.innerHTML = '▼';
                     downArrow.style.fontSize = '12px';
                     downArrow.style.padding = '0 4px';
+                    downArrow.setAttribute('aria-label', 'Move this phase later');
+                    downArrow.disabled = frame >= board.frames.length - 1;
                     downArrow.addEventListener('click', function () {
                         if (frame < board.frames.length - 1) movePhase(frame, frame + 1);
                     });
@@ -5911,8 +6254,9 @@
                     ph.appendChild(cnt);
                     ph.appendChild(next);
                     const timingBtn = document.createElement('button');
-                    timingBtn.className = 'btn ghost';
+                    timingBtn.className = 'btn ghost wide';
                     timingBtn.innerHTML = '<small>' + phaseTimingLabel(frame) + '</small>';
+                    timingBtn.setAttribute('aria-label', 'Transition speed: ' + phaseTimingLabel(frame));
                     timingBtn.title = frame < board.frames.length - 1
                         ? 'Set the transition speed from this phase to the next'
                         : 'Last phase has no outgoing transition';
@@ -5940,32 +6284,40 @@
                         }),
                     );
                     const savePlayBtn = document.createElement('button');
-                    savePlayBtn.className = 'btn ghost';
+                    savePlayBtn.className = 'btn ghost wide';
                     savePlayBtn.innerHTML = '<small>Save as play</small>';
+                    savePlayBtn.setAttribute('aria-label', 'Save as play');
                     savePlayBtn.addEventListener('click', function () {
                         const name = prompt('Name your custom play:', 'My play');
                         if (name) saveCustomPlay(name);
                     });
                     ph.appendChild(savePlayBtn);
-                    ph.appendChild(
-                        btn({
-                            icon: playing ? 'stop' : 'play',
-                            label: playing ? 'Stop' : 'Play',
-                            wide: true,
-                            on: playing,
-                            go: function () {
-                                playing ? stop() : play();
-                            },
-                        }),
-                    );
+                    const playBtn = btn({
+                        icon: playing ? 'stop' : 'play',
+                        label: playing ? 'Stop' : 'Play',
+                        wide: true,
+                        go: function () {
+                            if (lockedForRecording()) return;
+                            playing ? stop() : play();
+                        },
+                    });
+                    if (playing) playBtn.classList.add('on');
+                    ph.appendChild(playBtn);
                     const speedBtn = document.createElement('button');
-                    speedBtn.className = 'btn ghost playback-speed' + (playbackSpeed !== 1 ? ' is-fast' : '');
+                    speedBtn.className = 'btn ghost wide playback-speed' + (playbackSpeed !== 1 ? ' is-fast' : '');
                     speedBtn.innerHTML = '<small>Speed ' + playbackSpeedLabel() + '</small>';
                     speedBtn.title = 'Change playback speed: 0.5×, 1×, 1.5× or 2×';
                     speedBtn.setAttribute('aria-label', 'Playback speed ' + playbackSpeedLabel() + '. Click to change');
                     speedBtn.addEventListener('click', cyclePlaybackSpeed);
                     ph.appendChild(speedBtn);
                     footBar.appendChild(ph);
+                    cnt.setAttribute('aria-live', 'polite');
+                    if (narrowUI()) {
+                        [speedBtn, playBtn, next, cnt, prev].forEach(function (n) {
+                            ph.insertBefore(n, ph.firstChild);
+                        });
+                        footBar.insertBefore(ph, footBar.firstChild);
+                    }
                     const sp2 = document.createElement('div');
                     sp2.className = 'spacer';
                     footBar.appendChild(sp2);
@@ -5997,6 +6349,7 @@
                         btn({
                             icon: 'licence',
                             ghost: true,
+                            aria: 'Licence',
                             go: function () {
                                 openLicence(false);
                             },
@@ -6092,10 +6445,40 @@
                         inp.value = t.label;
                         inp.maxLength = 4;
                         inp.setAttribute('aria-label', 'Player number or initials');
+                        let before = t.label,
+                            beforeSnap = null;
+                        inp.addEventListener('focus', function () {
+                            before = t.label;
+                            beforeSnap = snapshot();
+                        });
                         inp.addEventListener('input', function () {
                             t.label = inp.value;
                             draw();
-                            saveBoard();
+                        });
+                        // Checked when the edit is finished, not per keystroke, so typing "1" on the
+                        // way to "11" is not refused. Empty and duplicate numbers go back.
+                        inp.addEventListener('change', function () {
+                            const val = inp.value.trim();
+                            if (!val) {
+                                toast('A player needs a number or initials');
+                            } else if (validateNumber(t.team, val, t.id)) {
+                                t.label = val;
+                                inp.value = val;
+                                if (val !== before && beforeSnap) {
+                                    undoStack.push(beforeSnap);
+                                    trimUndo();
+                                    redoStack = [];
+                                    updateUndoButtons();
+                                }
+                                before = val;
+                                beforeSnap = snapshot();
+                                draw();
+                                saveBoard();
+                                return;
+                            }
+                            t.label = before;
+                            inp.value = before;
+                            draw();
                         });
                         editor.appendChild(inp);
                     }
@@ -6106,7 +6489,9 @@
                     def.style.background =
                         t.type === 'player' ? (t.team === 'home' ? board.home : board.away) : '#5a5a5a';
                     def.setAttribute('aria-label', 'Use team colour');
+                    def.setAttribute('aria-pressed', t.color ? 'false' : 'true');
                     def.addEventListener('click', function () {
+                        pushUndo();
                         t.color = null;
                         select(id);
                         draw();
@@ -6117,7 +6502,8 @@
                         const s = document.createElement('button');
                         s.className = 'sw' + (t.color === c ? ' on' : '');
                         s.style.background = c;
-                        s.setAttribute('aria-label', 'Colour ' + c);
+                        s.setAttribute('aria-label', colourName(c));
+                        s.setAttribute('aria-pressed', t.color === c ? 'true' : 'false');
                         s.addEventListener('click', function () {
                             pushUndo();
                             t.color = c;
@@ -6137,6 +6523,11 @@
                                 pushUndo();
                                 const p = livePos(t.id);
                                 const c = Object.assign({}, t, { id: uid() });
+                                // A copied player gets the next free shirt, never a duplicate.
+                                if (c.type === 'player') {
+                                    c.label = nextShirt(c.team);
+                                    c.bench = false;
+                                }
                                 board.tokens.push(c);
                                 setPos(frame, c.id, p.x + 3, p.y + 3);
                                 select(c.id);
@@ -6191,6 +6582,7 @@
                     draw();
                 }
                 function openSheet(key) {
+                    if (lockedForRecording()) return;
                     cancelDraw();
                     sheetKey = key;
                     const titles = {
@@ -6248,9 +6640,8 @@
                         const s = document.createElement('button');
                         s.className = 'sw' + (current === c ? ' on' : '');
                         s.style.background = c;
-                        s.style.width = '38px';
-                        s.style.height = '38px';
-                        s.setAttribute('aria-label', 'Kit colour ' + c);
+                        s.setAttribute('aria-label', 'Kit colour: ' + colourName(c));
+                        s.setAttribute('aria-pressed', current === c ? 'true' : 'false');
                         s.addEventListener('click', function () {
                             onPick(c);
                         });
@@ -7603,7 +7994,7 @@
                             const data = sanitiseBoard(rec.data);
                             if (!data) return;
                             out.push({
-                                id: nstr(rec.id, 24) || uid(),
+                                id: nstr(rec.id, 40) || uid(),
                                 name: nstr(rec.name, 80) || 'Untitled',
                                 at: +new Date(rec.at) || Date.now(),
                                 data: data,
@@ -7890,12 +8281,17 @@
                             source: /^https?:\/\//.test(q.source || '') ? String(q.source).slice(0, 300) : '',
                         };
                     }
-                    const used = Object.create(null);
+                    const used = Object.create(null),
+                        idMap = Object.create(null);
                     (Array.isArray(b.tokens) ? b.tokens.slice(0, 140) : []).forEach((t) => {
                         if (!t || TOKEN_TYPES.indexOf(t.type) < 0) return;
-                        let id = nstr(t.id, 24) || uid();
+                        // IDs are crypto.randomUUID() strings (36 chars). They used to be cut to 24 here,
+                        // which orphaned every saved position and arrow owner on the next launch.
+                        const origId = nstr(t.id, 40);
+                        let id = origId || uid();
                         while (Object.prototype.hasOwnProperty.call(used, id)) id = uid();
                         used[id] = 1;
+                        if (origId) idMap[origId] = id;
                         out.tokens.push({
                             id: id,
                             type: t.type,
@@ -7921,10 +8317,11 @@
                             Object.keys(f.pos)
                                 .slice(0, 140)
                                 .forEach((k) => {
-                                    if (!Object.prototype.hasOwnProperty.call(used, k)) return;
+                                    const nk = idMap[k];
+                                    if (!nk) return;
                                     const p = f.pos[k];
                                     if (!p || typeof p !== 'object') return;
-                                    fr.pos[k] = { x: nnum(p.x, -60, 220, 0), y: nnum(p.y, -60, 180, 0) };
+                                    fr.pos[nk] = { x: nnum(p.x, -60, 220, 0), y: nnum(p.y, -60, 180, 0) };
                                 });
                         }
                         (Array.isArray(f.shapes) ? f.shapes.slice(0, 90) : []).forEach((sh) => {
@@ -7941,7 +8338,7 @@
                                     tool: sh.tool,
                                     color: ncol(sh.color, INK),
                                     pts: pts,
-                                    actorId: nstr(sh.actorId, 40) || null,
+                                    actorId: idMap[nstr(sh.actorId, 40)] || null,
                                 });
                         });
                         out.frames.push(fr);
@@ -8024,6 +8421,7 @@
                 }
 
                 function openHome() {
+                    if (lockedForRecording()) return;
                     cancelDraw();
                     if (playing) stop();
                     closeSheet();
@@ -8092,8 +8490,10 @@
                         const switchBtn = document.createElement('button');
                         switchBtn.className = 'chip';
                         switchBtn.textContent = 'Open';
-                        switchBtn.style.fontSize = '12px';
-                        switchBtn.style.minHeight = '30px';
+                        switchBtn.style.fontSize = '13px';
+                        switchBtn.style.minHeight = '44px';
+                        switchBtn.setAttribute('aria-label', 'Open ' + (b.name || 'Untitled'));
+                        if (i === currentBoardIndex) switchBtn.setAttribute('aria-current', 'true');
                         switchBtn.addEventListener('click', function () {
                             setCurrentBoard(i);
                             closeHome();
@@ -8103,8 +8503,10 @@
                             const delBtn = document.createElement('button');
                             delBtn.className = 'chip danger';
                             delBtn.textContent = '✕';
-                            delBtn.style.fontSize = '12px';
-                            delBtn.style.minHeight = '30px';
+                            delBtn.style.fontSize = '13px';
+                            delBtn.style.minHeight = '44px';
+                            delBtn.style.minWidth = '44px';
+                            delBtn.setAttribute('aria-label', 'Delete ' + (b.name || 'Untitled'));
                             delBtn.addEventListener('click', function (e) {
                                 e.stopPropagation();
                                 if (confirm('Delete "' + (b.name || 'Untitled') + '"?')) {
@@ -8841,6 +9243,7 @@
                             t.blur();
                             return;
                         }
+                        if (recordingVideo) return;
                         if (playing) {
                             stop();
                             return;
@@ -8856,6 +9259,8 @@
                     }
                     if (typing) return;
                     if (gated) return;
+                    // While recording, the keyboard would edit or stop the clip being captured.
+                    if (recordingVideo) return;
                     if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
                         e.preventDefault();
                         if (e.shiftKey) redo();
@@ -8918,15 +9323,49 @@
                         toggleFull();
                         return;
                     }
+                    if (e.key === '0') {
+                        resetView();
+                        return;
+                    }
                     if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+                        // A focused button or link keeps Space for itself (keyboard users press
+                        // buttons with it); the play shortcut only applies on the board.
+                        if (t && t.closest && t.closest('button, a[href], [role="button"], summary')) return;
                         e.preventDefault();
                         playing ? stop() : play();
                         return;
                     }
                 });
 
+                let lastTap = null,
+                    tapDown = null,
+                    synthDblAt = 0;
+                cv.addEventListener('pointerdown', function (e) {
+                    if (e.pointerType === 'touch') tapDown = { x: e.clientX, y: e.clientY, t: performance.now() };
+                }, { passive: true });
+                cv.addEventListener('pointerup', function (e) {
+                    if (e.pointerType !== 'touch' || !tapDown) return;
+                    const now = performance.now();
+                    const isTap = now - tapDown.t < 300 && Math.hypot(e.clientX - tapDown.x, e.clientY - tapDown.y) < 10;
+                    tapDown = null;
+                    if (!isTap) {
+                        lastTap = null;
+                        return;
+                    }
+                    if (lastTap && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+                        lastTap = null;
+                        synthDblAt = now;
+                        editCaptionAt(e);
+                        return;
+                    }
+                    lastTap = { x: e.clientX, y: e.clientY, t: now };
+                }, { passive: true });
                 cv.addEventListener('dblclick', function (e) {
-                    if (playing) return;
+                    if (performance.now() - synthDblAt < 700) return;
+                    editCaptionAt(e);
+                });
+                function editCaptionAt(e) {
+                    if (playing || recordingVideo) return;
                     const { X, Y } = localXY(e);
                     const cap = board.frames[frame].caption || '';
                     const onCaption =
@@ -8949,7 +9388,7 @@
                     board.frames[frame].caption = next.slice(0, 300);
                     draw();
                     saveBoard();
-                });
+                }
 
                 if (typeof window.matchMedia === 'function') {
                     const printMedia = window.matchMedia('print');
@@ -9008,7 +9447,27 @@
 
                 // A single unreadable record used to be fatal on every launch. Now a bad store is
                 // dropped, a fresh board takes its place, and the user is told what happened.
+                function wireViewControls() {
+                    const rv = document.getElementById('resetView');
+                    if (rv) rv.addEventListener('click', resetView);
+                    const hint = document.getElementById('captionHint');
+                    const touchOnly = typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches;
+                    if (hint)
+                        hint.textContent = touchOnly
+                            ? 'Double-tap a caption to edit · Pinch to zoom'
+                            : 'Double-click caption to edit · Scroll to zoom · 0 resets the view';
+                    if (narrowMedia) {
+                        const onChange = function () {
+                            if (!board) return;
+                            renderTools();
+                            renderFoot();
+                        };
+                        if (narrowMedia.addEventListener) narrowMedia.addEventListener('change', onChange);
+                        else if (narrowMedia.addListener) narrowMedia.addListener(onChange);
+                    }
+                }
                 function boot() {
+                    wireViewControls();
                     storageOK = probeStorage();
                     migrateKeys();
                     loadProfile();
@@ -9030,6 +9489,22 @@
                         currentBoardIndex = 0;
                         loadCurrentBoard();
                         toast('Your saved boards could not be read, so CHALK started a new one');
+                    }
+                    if (bootNotice) {
+                        const n = bootNotice;
+                        setTimeout(function () {
+                            toast(
+                                n.msg,
+                                n.raw
+                                    ? {
+                                          label: 'Download the copy',
+                                          go: function () {
+                                              download('chalk-damaged-boards-' + stampDate() + '.json', n.raw);
+                                          },
+                                      }
+                                    : null,
+                            );
+                        }, 900);
                     }
                     if (!licenceAccepted()) {
                         setTimeout(function () {
@@ -9107,6 +9582,26 @@
                     );
                     check('strings are capped', nstr('abcdef', 3) === 'abc' && nstr(null, 3) === '');
                     check('current board round-trips', !!sanitiseBoard(JSON.parse(JSON.stringify(board))));
+                    (function () {
+                        const b = blankBoard('11v11');
+                        const tk = b.tokens.find((t) => t.type === 'player' && !t.bench);
+                        b.frames[0].pos[tk.id] = { x: 33.3, y: 22.2 };
+                        b.frames.push({ id: uid(), pos: JSON.parse(JSON.stringify(b.frames[0].pos)), shapes: [] });
+                        b.frames[0].shapes.push({ id: uid(), tool: 'run', color: '#ffffff', pts: [{ x: 33.3, y: 22.2 }, { x: 40, y: 22 }], actorId: tk.id });
+                        const back = sanitiseBoard(JSON.parse(JSON.stringify(b)));
+                        const p = back && back.frames[0].pos[tk.id];
+                        check('token positions survive a save and reload', !!p && p.x === 33.3 && p.y === 22.2);
+                        check('arrow owners survive a save and reload', !!back && back.frames[0].shapes[0].actorId === tk.id);
+                        const seen = {};
+                        let stacked = false;
+                        b.tokens.filter((t) => t.type === 'player' && !t.bench).forEach(function (t) {
+                            const q = back.frames[0].pos[t.id] || b.frames[0].pos[t.id];
+                            const key = Math.round(q.x) + ',' + Math.round(q.y);
+                            if (seen[key]) stacked = true;
+                            seen[key] = 1;
+                        });
+                        check('parked players never share a spot', !stacked);
+                    })();
                     check('board model has no invariant errors', boardModelIssues(board).length === 0);
                     check('every phase has a transition policy', board.frames.every((f) => !!f.transition && f.transition.easing === 'easeInOut'));
                     check('transition durations stay within bounds', board.frames.every((f, i) => i === board.frames.length - 1 || f.transition.duration == null || (f.transition.duration >= 250 && f.transition.duration <= 10000)));
