@@ -31,40 +31,6 @@
                 .toc a:hover { background: var(--chalk-line); }
             }
 
-            /* ===== v8.6 QA fixes ===== */
-            #sheet .swatches { flex-wrap: wrap; }
-            #sheet input[type='text'],
-            #sheet input:not([type]) {
-                display: block;
-                width: 100%;
-                max-width: 420px;
-                min-height: 46px;
-                margin: 4px 0;
-                border-radius: 10px;
-                border: 1px solid var(--chalk-line);
-                background: var(--chalk-surface);
-                color: var(--chalk-ink);
-                font: 600 16px/1.2 inherit;
-                padding: 0 14px;
-                box-sizing: border-box;
-            }
-            #sheet input[type='text']:focus { border-color: var(--chalk-amber); outline: none; }
-            #resetView {
-                position: absolute;
-                top: 8px;
-                right: 8px;
-                z-index: 5;
-                min-height: 44px;
-                display: none;
-            }
-            #resetView.show { display: inline-flex; align-items: center; }
-            .btn:disabled { opacity: 0.35; cursor: default; }
-            @media (max-width: 480px) {
-                #tools .brand,
-                #tools .profile-badge,
-                #tools .undo-counter { display: none; }
-            }
-
             /* ===== CHALK THEME ===== */
             /* keyboard users had no indication of focus at all */
             :focus-visible {
@@ -2043,6 +2009,333 @@
                     color: #555 !important;
                 }
             }
+            /* Later rules win: these overrides must stay at the end of the stylesheet. */
+            /* ===== v9 · Refined look ===== */
+            html.sun {
+                --chalk-bg: #ece8df;
+                --chalk-board: #ffffff;
+                --chalk-surface: #f1ede4;
+                --chalk-line: #cbc4b4;
+                --chalk-ink: #141413;
+                --chalk-dim: #4d493f;
+            }
+            html.sun body { background: var(--chalk-bg); }
+            html.sun .sbrief .stag,
+            html.sun .ssrc,
+            html.sun .hprofile.set,
+            html.sun .gbody h2,
+            html.sun .gbody ol.steps li::before,
+            html.sun .tab.on,
+            html.sun .profile-badge.set { color: #7a5d00; }
+            html.sun #editor { background: rgba(255, 255, 255, 0.97); }
+            html.sun #scrim { background: rgba(20, 20, 19, 0.45); }
+            html.sun .chip.on,
+            html.sun .btn.on { color: var(--chalk-amber-ink); }
+            /* tools as one segmented group */
+            .seg {
+                display: flex;
+                gap: 2px;
+                padding: 3px;
+                border-radius: 14px;
+                background: var(--chalk-surface);
+                flex: 0 0 auto;
+            }
+            .seg .btn { background: transparent; border-radius: 10px; }
+            .seg .btn.on { background: var(--chalk-amber); color: var(--chalk-amber-ink); }
+            /* footer: transport row + tab bar */
+            #foot {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                padding: 0;
+                gap: 0;
+                overflow: visible;
+                min-height: 0;
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            .transport {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 8px 8px 6px;
+                min-width: 0;
+            }
+            #foot, .transport { min-width: 0; }
+            .pnum { display: block; white-space: nowrap; }
+            .transport .count {
+                min-width: 52px;
+                text-align: center;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--chalk-dim);
+                line-height: 1.2;
+                display: block;
+                white-space: nowrap;
+                flex: 0 1 auto;
+                overflow: hidden;
+            }
+            #editor.show ~ .caption-edit-hint { display: none; }
+            @media (max-width: 360px) {
+                .transport { gap: 3px; padding: 6px 4px; }
+                .btn.play-main { min-width: 64px; gap: 5px; }
+                .btn.play-main small { font-size: 15px; }
+                .transport .count { min-width: 40px; }
+                .transport .count b { font-size: 15px; }
+                .pname-tag { max-width: 52px; }
+            }
+            @media (max-width: 340px) {
+                .btn.play-main { padding: 0 8px; min-width: 0; }
+                .transport .count { min-width: 0; }
+                .pname-tag { letter-spacing: 0; }
+            }
+            .transport .count b { font-size: 16px; font-weight: 800; color: var(--chalk-ink); }
+            .pname-tag {
+                display: block;
+                max-width: 92px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 10px;
+                color: var(--chalk-dim);
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+                max-width: 70px;
+            }
+            .transport .btn:disabled { opacity: 0.3; }
+            .btn.play-main {
+                flex: 1 1 auto;
+                flex-direction: row;
+                gap: 8px;
+                height: 50px;
+                min-width: 96px;
+                border-radius: 14px;
+                background: var(--chalk-amber);
+                color: var(--chalk-amber-ink);
+                position: relative;
+                box-shadow: 0 4px 14px rgba(232, 200, 74, 0.22);
+            }
+            .btn.play-main small { display: inline !important; font-size: 16px; font-weight: 800; letter-spacing: 0; text-transform: none; }
+            .btn.play-main svg { width: 20px; height: 20px; fill: currentColor; }
+            .btn.play-main.is-playing { background: var(--chalk-ink); color: var(--chalk-bg); }
+            .play-badge {
+                position: absolute;
+                top: 4px;
+                right: 8px;
+                font-size: 10px;
+                font-weight: 800;
+                opacity: 0.8;
+            }
+            .btn.soft { background: var(--chalk-surface); }
+            .tabs {
+                display: flex;
+                align-items: stretch;
+                border-top: 1px solid var(--chalk-line);
+                padding: 0 4px;
+            }
+            .tab {
+                flex: 1 1 0;
+                min-width: 0;
+                min-height: 58px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 3px;
+                color: var(--chalk-dim);
+                font-size: 11px;
+                font-weight: 700;
+                border-radius: 10px;
+            }
+            .tab svg { width: 22px; height: 22px; }
+            .tab.on { color: var(--chalk-amber); }
+            .tab:active { background: var(--chalk-surface); }
+            @media (min-width: 900px) and (min-height: 501px) {
+                #foot { flex-direction: row; align-items: center; }
+                .tabs { border-top: 0; flex: 1 1 auto; max-width: 560px; order: -1; padding: 4px 8px; }
+                .transport { flex: 0 1 620px; margin-left: auto; padding: 6px 10px; }
+                .btn.play-main { max-width: 240px; }
+            }
+            @media (max-height: 500px) {
+                .tab { min-height: 46px; font-size: 10px; }
+                .tab svg { width: 20px; height: 20px; }
+                .transport { padding: 4px 8px; }
+                .btn.play-main { height: 44px; }
+            }
+            /* selected-player editor as a floating card */
+            #editor {
+                left: 8px;
+                right: 8px;
+                bottom: 8px;
+                border: 1px solid var(--chalk-line);
+                border-radius: 16px;
+                box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+                padding: 6px 8px 6px 12px;
+            }
+            #editor.show { animation: cardIn 0.18s cubic-bezier(0.16, 1, 0.3, 1); }
+            @keyframes cardIn { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+            /* toasts: small, near the top, clear of the play area's centre */
+            #toast {
+                top: calc(64px + env(safe-area-inset-top));
+                bottom: auto;
+                max-width: calc(100vw - 32px);
+                font-size: 13px;
+                line-height: 1.3;
+                padding: 8px 14px;
+                text-align: center;
+                transform: translateX(-50%) translateY(-8px);
+                border-radius: 14px;
+                width: max-content;
+                box-sizing: border-box;
+            }
+            #toast.show { transform: translateX(-50%) translateY(0); }
+            #toast { z-index: 70; }
+            /* sheets */
+            #sheet {
+                max-width: 720px;
+                margin: 0 auto;
+                box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
+            }
+            .sheet-head h2 { font-size: 18px; }
+            .chip:disabled { opacity: 0.4; cursor: default; }
+            .chip.danger { color: var(--chalk-danger); }
+            .note { font-size: 12px; color: var(--chalk-dim); margin: 6px 0 0; }
+            /* press feedback */
+            .btn, .tab { transition: background 0.12s, color 0.12s, transform 0.08s; }
+            .btn:active:not(:disabled), .tab:active { transform: scale(0.96); }
+
+
+            /* ===== v9.1 · dialogs, front page, sunlight coverage ===== */
+            .dlg {
+                position: fixed; top: 0; right: 0; bottom: 0; left: 0;
+                z-index: 60;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                padding: 16px;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+                background: rgba(0, 0, 0, 0.55);
+                animation: scrimIn 0.16s ease-out;
+            }
+            @media (min-width: 600px) { .dlg { align-items: center; } }
+            .dlg-card {
+                width: 100%;
+                max-width: 420px;
+                box-sizing: border-box;
+                padding: 18px 18px 14px;
+                border-radius: 18px;
+                background: var(--chalk-board);
+                color: var(--chalk-ink);
+                border: 1px solid var(--chalk-line);
+                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+                animation: sheetIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .dlg-card h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+            .dlg-card p { margin: 0 0 12px; font-size: 14px; line-height: 1.45; color: var(--chalk-dim); }
+            .dlg-field { display: block; margin: 0 0 10px; }
+            .dlg-field span { display: block; margin: 0 0 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--chalk-dim); }
+            .dlg-field input,
+            .dlg-field textarea {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+                min-height: 48px;
+                padding: 10px 14px;
+                border-radius: 12px;
+                border: 1px solid var(--chalk-line);
+                background: var(--chalk-surface);
+                color: var(--chalk-ink);
+                font: 600 16px/1.35 inherit;
+                resize: vertical;
+            }
+            .dlg-field input:focus,
+            .dlg-field textarea:focus { outline: none; border-color: var(--chalk-amber); }
+            .dlg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+            .dlg-actions .chip { min-width: 96px; justify-content: center; font-size: 15px; font-weight: 700; }
+            .dlg-actions .chip.dlg-danger { background: var(--chalk-danger); color: #fff; }
+            @media (prefers-reduced-motion: reduce) { .dlg, .dlg-card { animation: none !important; } }
+
+            /* front page */
+            .hboards { margin-top: 20px; }
+            .hlabel { margin: 0 0 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--chalk-dim); }
+            .hbrow {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 6px 6px 14px;
+                margin: 0 0 6px;
+                border-radius: 14px;
+                background: var(--chalk-surface);
+                border: 1px solid transparent;
+            }
+            .hbrow.cur { border-color: var(--chalk-amber); }
+            .hbname { flex: 1 1 auto; min-width: 0; }
+            .hbname b { display: block; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .hbname span { display: block; font-size: 12px; color: var(--chalk-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .hbrow .chip { background: var(--chalk-board); }
+            .hmain { box-shadow: 0 6px 20px rgba(232, 200, 74, 0.2); }
+            .htile { border-color: var(--chalk-line); }
+            .htile:active { background: var(--chalk-line); }
+
+            /* sunlight: every hard-coded dark-theme colour gets a light counterpart */
+            html.sun .hwrap h1 {
+                background: linear-gradient(135deg, #141413 35%, #9a7400 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
+            html.sun .gtop { background: rgba(255, 255, 255, 0.96); }
+            html.sun .gbody p,
+            html.sun .gbody li,
+            html.sun .gbody td,
+            html.sun .gbody .legend span,
+            html.sun .shortcuts-box td,
+            html.sun .sbrief .sobj,
+            html.sun ul.scues li { color: #2b2822; }
+            html.sun ul.scues--say li { color: #4d493f; }
+            html.sun ul.scues--good li::marker,
+            html.sun .pact.up { color: #2f7a36; }
+            html.sun .pname::placeholder { color: #8a857a; }
+            html.sun .play:active,
+            html.sun .htile:active { background: #e3ded2; }
+            html.sun .prow:hover { background: rgba(0, 0, 0, 0.04); }
+            html.sun #wrap { background: #dedad0; }
+            html.sun .dlg { background: rgba(20, 20, 19, 0.4); }
+            html.sun .dlg-card { box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25); }
+            html.sun .hmain small { color: #4a3708; }
+
+            /* ===== v8.6 QA fixes ===== */
+            #sheet .swatches { flex-wrap: wrap; }
+            #sheet input[type='text'],
+            #sheet input:not([type]) {
+                display: block;
+                width: 100%;
+                max-width: 420px;
+                min-height: 46px;
+                margin: 4px 0;
+                border-radius: 10px;
+                border: 1px solid var(--chalk-line);
+                background: var(--chalk-surface);
+                color: var(--chalk-ink);
+                font: 600 16px/1.2 inherit;
+                padding: 0 14px;
+                box-sizing: border-box;
+            }
+            #sheet input[type='text']:focus { border-color: var(--chalk-amber); outline: none; }
+            #resetView {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                z-index: 5;
+                min-height: 44px;
+                display: none;
+            }
+            #resetView.show { display: inline-flex; align-items: center; }
+            .btn:disabled { opacity: 0.35; cursor: default; }
+            @media (max-width: 480px) {
+                #tools .brand,
+                #tools .profile-badge,
+                #tools .undo-counter { display: none; }
+            }
+
         </style>
     </head>
     <body>
@@ -2430,6 +2723,13 @@
                     playFrom = 0,
                     playTo = 0,
                     playT0 = 0,
+                    // Fix 2: while the tab is hidden, rAF stops but the clock does not. The moment the
+                    // tab was hidden is kept here so the animation resumes where it left off instead of
+                    // jumping to the end hold.
+                    playPausedAt = null,
+                    // Fix 1: called once when a play actually reaches its end (or is stopped), so the
+                    // video recorder is driven by playback rather than a wall-clock guess.
+                    onPlayComplete = null,
                     loop = false,
                     playingFrame = -1,
                     playbackSpeed = 1;
@@ -2465,6 +2765,14 @@
                 // adding more phases later still records everything by default.
                 let videoFrom = null,
                     videoTo = null;
+                let sunMode = false;
+                function applySun() {
+                    document.documentElement.classList.toggle('sun', sunMode);
+                    const meta = document.querySelector('meta[name="theme-color"]');
+                    if (meta) meta.setAttribute('content', sunMode ? '#ffffff' : '#1a1a1a');
+                    pitchKey = '';
+                    if (board) draw();
+                }
                 let panelOpen = false,
                     panelTeam = 'home',
                     panelMode = 'team';
@@ -2605,6 +2913,139 @@
                         }, 1800);
                     }
                     setOpen(el, true);
+                }
+
+                // ---- in-app dialogs ----
+                // The browser's own confirm()/prompt() boxes look out of place, can't be styled for
+                // sunlight, and silently do nothing inside an Android WebView. ask() returns a Promise:
+                // true (confirm), the text (one field) or an array (several fields); null if cancelled.
+                let dialogOpen = false;
+                function ask(o) {
+                    return new Promise(function (resolve) {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'dlg';
+                        const card = document.createElement('div');
+                        card.className = 'dlg-card';
+                        card.setAttribute('role', o.danger ? 'alertdialog' : 'dialog');
+                        card.setAttribute('aria-modal', 'true');
+                        const tid = 'dlg-t-' + Date.now();
+                        card.setAttribute('aria-labelledby', tid);
+                        const h = document.createElement('h2');
+                        h.id = tid;
+                        h.textContent = o.title || '';
+                        card.appendChild(h);
+                        if (o.message) {
+                            const p = document.createElement('p');
+                            p.textContent = o.message;
+                            card.appendChild(p);
+                        }
+                        const inputs = [];
+                        (o.fields || []).forEach(function (f, i) {
+                            const lab = document.createElement('label');
+                            lab.className = 'dlg-field';
+                            lab.appendChild(elem('span', null, f.label || ''));
+                            const inp = document.createElement(f.multiline ? 'textarea' : 'input');
+                            if (!f.multiline) inp.type = f.type || 'text';
+                            if (f.type === 'number') inp.inputMode = 'decimal';
+                            if (f.min != null) inp.min = f.min;
+                            if (f.max != null) inp.max = f.max;
+                            if (f.maxLength) inp.maxLength = f.maxLength;
+                            if (f.multiline) inp.rows = 3;
+                            inp.value = f.value == null ? '' : String(f.value);
+                            if (f.placeholder) inp.placeholder = f.placeholder;
+                            inp.autocomplete = 'off';
+                            lab.appendChild(inp);
+                            card.appendChild(lab);
+                            inputs.push(inp);
+                        });
+                        const acts = document.createElement('div');
+                        acts.className = 'dlg-actions';
+                        const cancel = document.createElement('button');
+                        cancel.type = 'button';
+                        cancel.className = 'chip';
+                        cancel.textContent = o.cancel || 'Cancel';
+                        const ok = document.createElement('button');
+                        ok.type = 'button';
+                        ok.className = 'chip ' + (o.danger ? 'dlg-danger' : 'on');
+                        ok.textContent = o.ok || 'OK';
+                        acts.appendChild(cancel);
+                        acts.appendChild(ok);
+                        card.appendChild(acts);
+                        wrap.appendChild(card);
+                        const sheetEl = document.getElementById('sheet'),
+                            homeNode = document.getElementById('home');
+                        const prevInert = [sheetEl ? !!sheetEl.inert : false, homeNode ? !!homeNode.inert : false];
+                        let done = false;
+                        function finish(v) {
+                            if (done) return;
+                            done = true;
+                            dialogOpen = false;
+                            window.removeEventListener('keydown', onKey, true);
+                            try {
+                                if (sheetEl) sheetEl.inert = prevInert[0];
+                                if (homeNode) homeNode.inert = prevInert[1];
+                            } catch (e) {}
+                            closeModal(wrap);
+                            wrap.remove();
+                            resolve(v);
+                        }
+                        function submit() {
+                            if (!inputs.length) return finish(true);
+                            const vals = inputs.map((i) => i.value);
+                            if (o.validate) {
+                                const err = o.validate(vals);
+                                if (err) {
+                                    toast(err);
+                                    return;
+                                }
+                            }
+                            finish(inputs.length === 1 ? vals[0] : vals);
+                        }
+                        function onKey(e) {
+                            if (e.key === 'Escape') {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                finish(null);
+                            } else if (e.key === 'Enter' && !(e.target && e.target.tagName === 'TEXTAREA') && !(e.target === cancel)) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                submit();
+                            }
+                        }
+                        cancel.addEventListener('click', function () {
+                            finish(null);
+                        });
+                        ok.addEventListener('click', submit);
+                        wrap.addEventListener('pointerdown', function (e) {
+                            if (e.target === wrap) finish(null);
+                        });
+                        window.addEventListener('keydown', onKey, true);
+                        document.body.appendChild(wrap);
+                        try {
+                            if (sheetEl) sheetEl.inert = true;
+                            if (homeNode) homeNode.inert = true;
+                        } catch (e) {}
+                        dialogOpen = true;
+                        openModal(wrap);
+                        // Destructive questions start on Cancel; text questions start in the box.
+                        const focusEl = inputs[0] || (o.danger ? cancel : ok);
+                        try {
+                            focusEl.focus({ preventScroll: true });
+                            if (inputs[0] && inputs[0].select) inputs[0].select();
+                        } catch (e) {}
+                    });
+                }
+                function askConfirm(title, message, okText, danger) {
+                    return ask({ title: title, message: message, ok: okText || 'OK', danger: danger !== false });
+                }
+                function askText(title, message, value, opts) {
+                    opts = opts || {};
+                    return ask({
+                        title: title,
+                        message: message,
+                        ok: opts.ok || 'Save',
+                        fields: [{ label: opts.label || '', value: value, maxLength: opts.maxLength || 80, multiline: !!opts.multiline, placeholder: opts.placeholder }],
+                    });
                 }
 
                 // ---- modal focus handling: move focus in, trap Tab, put it back on close ----
@@ -3099,6 +3540,157 @@
                     [0.16, -1.0],
                     [0, -0.6],
                 ];
+                // ---- realistic kit: shaped shirt, shading, collar and cuff trim, soft shadow ----
+                // Each look (colour, size, screen density) is painted once into a small offscreen
+                // sprite and reused, so the shading and blurred shadow cost nothing per frame.
+                const spriteCache = new Map();
+                function mixHex(hex, target, t) {
+                    const h = String(hex || '#888888').replace('#', '');
+                    const f = h.length === 3 ? h.split('').map((c) => c + c).join('') : h.slice(0, 6);
+                    const n = parseInt(f, 16);
+                    if (!isFinite(n)) return hex;
+                    const r = (n >> 16) & 255,
+                        g = (n >> 8) & 255,
+                        b = n & 255;
+                    const T = target === 'white' ? 255 : 0;
+                    const m = (v) => Math.round(v + (T - v) * t);
+                    return 'rgb(' + m(r) + ',' + m(g) + ',' + m(b) + ')';
+                }
+                function kitPath(g, cx, cy, s) {
+                    const P = (x, y) => [cx + x * s, cy + y * s];
+                    g.beginPath();
+                    g.moveTo(...P(-0.26, -0.98));
+                    g.quadraticCurveTo(...P(-0.44, -0.92), ...P(-0.6, -0.86));
+                    g.lineTo(...P(-1.04, -0.5));
+                    g.quadraticCurveTo(...P(-0.98, -0.28), ...P(-0.8, -0.06));
+                    g.lineTo(...P(-0.62, -0.22));
+                    g.quadraticCurveTo(...P(-0.66, 0.4), ...P(-0.62, 0.96));
+                    g.quadraticCurveTo(...P(0, 1.08), ...P(0.62, 0.96));
+                    g.quadraticCurveTo(...P(0.66, 0.4), ...P(0.62, -0.22));
+                    g.lineTo(...P(0.8, -0.06));
+                    g.quadraticCurveTo(...P(0.98, -0.28), ...P(1.04, -0.5));
+                    g.lineTo(...P(0.6, -0.86));
+                    g.quadraticCurveTo(...P(0.44, -0.92), ...P(0.26, -0.98));
+                    g.quadraticCurveTo(...P(0, -0.62), ...P(-0.26, -0.98));
+                    g.closePath();
+                }
+                // The same outline as kitPath(), as an SVG path string for the SVG export.
+                function kitSvgPath(cx, cy, s) {
+                    const P = (x, y) => (cx + x * s).toFixed(3) + ',' + (cy + y * s).toFixed(3);
+                    return (
+                        'M' + P(-0.26, -0.98) + ' Q' + P(-0.44, -0.92) + ' ' + P(-0.6, -0.86) +
+                        ' L' + P(-1.04, -0.5) + ' Q' + P(-0.98, -0.28) + ' ' + P(-0.8, -0.06) +
+                        ' L' + P(-0.62, -0.22) + ' Q' + P(-0.66, 0.4) + ' ' + P(-0.62, 0.96) +
+                        ' Q' + P(0, 1.08) + ' ' + P(0.62, 0.96) + ' Q' + P(0.66, 0.4) + ' ' + P(0.62, -0.22) +
+                        ' L' + P(0.8, -0.06) + ' Q' + P(0.98, -0.28) + ' ' + P(1.04, -0.5) +
+                        ' L' + P(0.6, -0.86) + ' Q' + P(0.44, -0.92) + ' ' + P(0.26, -0.98) +
+                        ' Q' + P(0, -0.62) + ' ' + P(-0.26, -0.98) + ' Z'
+                    );
+                }
+                function kitSprite(fill, s, shape) {
+                    let k = 1;
+                    try {
+                        k = ctx.getTransform ? Math.abs(ctx.getTransform().a) || 1 : 1;
+                    } catch (e) {}
+                    const key = shape + '|' + fill + '|' + Math.round(s * 10) + '|' + Math.round(k * 100);
+                    const hit = spriteCache.get(key);
+                    if (hit) return hit;
+                    if (spriteCache.size > 80) spriteCache.clear();
+                    const pad = s * 0.95,
+                        size = Math.ceil(2.2 * s + pad * 2);
+                    const c = document.createElement('canvas');
+                    c.width = Math.max(1, Math.ceil(size * k));
+                    c.height = Math.max(1, Math.ceil(size * k));
+                    const g = c.getContext('2d');
+                    g.scale(k, k);
+                    const cx = size / 2,
+                        cy = size / 2 - s * 0.1;
+                    const dark = inkOn(fill) === INK;
+                    const trim = dark ? mixHex(fill, 'white', 0.55) : mixHex(fill, 'black', 0.38);
+                    const outline = mixHex(fill, 'black', dark ? 0.55 : 0.42);
+                    const trace = function () {
+                        if (shape === 'shirt') kitPath(g, cx, cy, s);
+                        else {
+                            g.beginPath();
+                            g.arc(cx, cy + s * 0.05, s * 0.95, 0, Math.PI * 2);
+                        }
+                    };
+                    // soft drop shadow, as if lying a touch above the grass
+                    g.save();
+                    g.shadowColor = 'rgba(0,0,0,0.5)';
+                    g.shadowBlur = s * 0.55 * k;
+                    g.shadowOffsetX = s * 0.08 * k;
+                    g.shadowOffsetY = s * 0.2 * k;
+                    trace();
+                    g.fillStyle = fill;
+                    g.fill();
+                    g.restore();
+                    // body shading: light from the top left
+                    trace();
+                    const gr = g.createLinearGradient(cx - s, cy - s, cx + s * 0.8, cy + s * 1.1);
+                    gr.addColorStop(0, mixHex(fill, 'white', 0.26));
+                    gr.addColorStop(0.5, fill);
+                    gr.addColorStop(1, mixHex(fill, 'black', 0.24));
+                    g.fillStyle = gr;
+                    g.fill();
+                    g.save();
+                    trace();
+                    g.clip();
+                    if (shape === 'shirt') {
+                        const P = (x, y) => [cx + x * s, cy + y * s];
+                        // cuffs
+                        g.fillStyle = trim;
+                        [[-1, 1], [1, -1]].forEach(function (sg) {
+                            const d = sg[0];
+                            g.beginPath();
+                            g.moveTo(...P(d * 1.06, -0.52));
+                            g.lineTo(...P(d * 0.8, -0.04));
+                            g.lineTo(...P(d * 0.71, -0.14));
+                            g.lineTo(...P(d * 0.94, -0.6));
+                            g.closePath();
+                            g.fill();
+                        });
+                        // sleeve seams and a soft fold down each side
+                        g.strokeStyle = 'rgba(0,0,0,0.16)';
+                        g.lineWidth = Math.max(0.6, s * 0.05);
+                        [-1, 1].forEach(function (d) {
+                            g.beginPath();
+                            g.moveTo(...P(d * 0.56, -0.84));
+                            g.quadraticCurveTo(...P(d * 0.64, -0.5), ...P(d * 0.62, -0.22));
+                            g.stroke();
+                        });
+                        const side = g.createLinearGradient(cx - s * 0.62, 0, cx + s * 0.62, 0);
+                        side.addColorStop(0, 'rgba(0,0,0,0.12)');
+                        side.addColorStop(0.2, 'rgba(0,0,0,0)');
+                        side.addColorStop(0.8, 'rgba(0,0,0,0)');
+                        side.addColorStop(1, 'rgba(0,0,0,0.16)');
+                        g.fillStyle = side;
+                        g.fillRect(cx - s * 1.1, cy - s * 1.1, s * 2.2, s * 2.3);
+                        // collar
+                        g.strokeStyle = trim;
+                        g.lineWidth = Math.max(1, s * 0.13);
+                        g.lineCap = 'round';
+                        g.beginPath();
+                        g.moveTo(...P(-0.27, -0.99));
+                        g.quadraticCurveTo(...P(0, -0.6), ...P(0.27, -0.99));
+                        g.stroke();
+                    } else {
+                        const hl = g.createRadialGradient(cx - s * 0.35, cy - s * 0.4, s * 0.1, cx, cy, s * 1.05);
+                        hl.addColorStop(0, 'rgba(255,255,255,0.28)');
+                        hl.addColorStop(1, 'rgba(255,255,255,0)');
+                        g.fillStyle = hl;
+                        g.fillRect(cx - s, cy - s, s * 2, s * 2.1);
+                    }
+                    g.restore();
+                    trace();
+                    g.lineWidth = Math.max(1, s * 0.075);
+                    g.lineJoin = 'round';
+                    g.strokeStyle = outline;
+                    g.stroke();
+                    const sp = { c: c, size: size, cx: cx, cy: cy };
+                    spriteCache.set(key, sp);
+                    return sp;
+                }
                 function traceShirt(cx, cy, s) {
                     ctx.beginPath();
                     SHIRT_PTS.forEach(function (pt, i) {
@@ -3120,26 +3712,8 @@
                         const shirt = board.tokenShape === 'shirt';
                         const s = R * 1.05;
                         if (shirt) selR = s * 1.08;
-                        if (shirt) {
-                            traceShirt(q.x, q.y + 2, s);
-                            ctx.fillStyle = 'rgba(0,0,0,.28)';
-                            ctx.fill();
-                            traceShirt(q.x, q.y, s);
-                            ctx.fillStyle = fill;
-                            ctx.fill();
-                        } else {
-                            ctx.beginPath();
-                            ctx.arc(q.x, q.y + 2, R, 0, Math.PI * 2);
-                            ctx.fillStyle = 'rgba(0,0,0,.28)';
-                            ctx.fill();
-                            ctx.beginPath();
-                            ctx.arc(q.x, q.y, R, 0, Math.PI * 2);
-                            ctx.fillStyle = fill;
-                            ctx.fill();
-                        }
-                        ctx.lineWidth = Math.max(1.5, R * 0.1);
-                        ctx.strokeStyle = inkOn(fill) === INK ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.4)';
-                        ctx.stroke();
+                        const sp = kitSprite(fill, shirt ? s : R * 1.05, shirt ? 'shirt' : 'disc');
+                        ctx.drawImage(sp.c, q.x - sp.cx, q.y - sp.cy, sp.size, sp.size);
                         const bottom = shirt ? s * 1.02 : R;
                         if (board.showNames && t.name) {
                             const fs = Math.max(9, Math.round(R * 0.66));
@@ -3157,19 +3731,27 @@
                         }
                         if (board.numbers && t.label) {
                             ctx.fillStyle = inkOn(fill);
+                            ctx.shadowColor = inkOn(fill) === INK ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.25)';
+                            ctx.shadowBlur = 0;
+                            ctx.shadowOffsetY = 1;
                             ctx.font =
                                 '700 ' +
                                 Math.round(R * (t.label.length > 2 ? 0.66 : 0.94)) +
                                 'px ui-sans-serif,system-ui,-apple-system,sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText(t.label.slice(0, 4), q.x, q.y + (shirt ? R * 0.22 : R * 0.04));
+                            ctx.fillText(t.label.slice(0, 4), q.x, q.y + (shirt ? R * 0.2 : R * 0.04));
+                            ctx.shadowColor = 'transparent';
+                            ctx.shadowOffsetY = 0;
                         }
                     } else if (t.type === 'ball') {
                         const r = R * 0.46;
+                        const bs = ctx.createRadialGradient(q.x + r * 0.2, q.y + r * 0.45, 0, q.x + r * 0.2, q.y + r * 0.45, r * 1.5);
+                        bs.addColorStop(0, 'rgba(0,0,0,0.42)');
+                        bs.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = bs;
                         ctx.beginPath();
-                        ctx.arc(q.x, q.y + 1.5, r, 0, Math.PI * 2);
-                        ctx.fillStyle = 'rgba(0,0,0,.3)';
+                        ctx.arc(q.x + r * 0.2, q.y + r * 0.45, r * 1.5, 0, Math.PI * 2);
                         ctx.fill();
                         ctx.beginPath();
                         ctx.arc(q.x, q.y, r, 0, Math.PI * 2);
@@ -3253,10 +3835,10 @@
                     const m = marks(b),
                         grass = b.style === 'grass';
                     const turf = grass ? TURF : BOARD_TINT;
-                    const band = grass ? '#227540' : '#d0ccc4';
-                    const chalk = grass ? 'rgba(255,255,255,.88)' : '#3a3a3a';
+                    const band = grass ? '#23743f' : '#d0ccc4';
+                    const chalk = grass ? 'rgba(255,255,255,.93)' : '#3a3a3a';
                     const lw = Math.max(1.4, T.s * 0.13);
-                    ctx.fillStyle = grass ? '#141414' : '#d4d0c8';
+                    ctx.fillStyle = grass ? (sunMode ? '#dedad0' : '#141414') : '#d4d0c8';
                     ctx.fillRect(0, 0, cw, ch);
                     if (m.grid) {
                         const glw = Math.max(1.6, Math.min(4.5, T.s * 0.055));
@@ -3289,12 +3871,28 @@
                     ctx.fillStyle = turf;
                     path(rectPts(-3, -3, m.L + 6, m.W + 6), true);
                     ctx.fill();
-                    const bands = 8,
+                    const bands = 12,
                         bw = m.L / bands;
                     ctx.fillStyle = band;
                     for (let i = 0; i < bands; i += 2) {
                         path(rectPts(i * bw, -3, bw, m.W + 6), true);
                         ctx.fill();
+                    }
+                    if (grass) {
+                        // A soft vignette gives the flat turf some depth. The pitch layer is baked
+                        // once into its cache, so this costs nothing per animation frame.
+                        const c0 = toScreen(m.L / 2, m.W / 2),
+                            c1 = toScreen(0, 0);
+                        const rad = Math.hypot(c1.x - c0.x, c1.y - c0.y) * 1.08;
+                        const vg = ctx.createRadialGradient(c0.x, c0.y, rad * 0.45, c0.x, c0.y, rad);
+                        vg.addColorStop(0, 'rgba(0,0,0,0)');
+                        vg.addColorStop(1, 'rgba(0,0,0,0.22)');
+                        ctx.save();
+                        path(rectPts(-3, -3, m.L + 6, m.W + 6), true);
+                        ctx.clip();
+                        ctx.fillStyle = vg;
+                        ctx.fillRect(0, 0, cw, ch);
+                        ctx.restore();
                     }
                     ctx.strokeStyle = chalk;
                     ctx.lineWidth = lw;
@@ -3444,53 +4042,6 @@
                     }
                     return inferShapeActorId({ tool: toolName, pts: pts }, fi, b);
                 }
-                function boardModelIssues(b) {
-                    const issues = [];
-                    if (!b || !Array.isArray(b.tokens) || !Array.isArray(b.frames) || !b.frames.length) {
-                        issues.push('board/frames missing');
-                        return issues;
-                    }
-                    const ids = new Set();
-                    b.tokens.forEach(function (t) {
-                        if (!t || !t.id) issues.push('token missing id');
-                        else if (ids.has(t.id)) issues.push('duplicate token id: ' + t.id);
-                        else ids.add(t.id);
-                    });
-                    const phaseIds = new Set();
-                    b.frames.forEach(function (fr, fi) {
-                        if (!fr || !fr.id) issues.push('phase ' + fi + ' missing id');
-                        else if (phaseIds.has(fr.id)) issues.push('duplicate phase id: ' + fr.id);
-                        else phaseIds.add(fr.id);
-                        if (!fr.transition || typeof fr.transition !== 'object') issues.push('phase ' + fi + ' missing transition');
-                        else {
-                            if (fr.transition.duration != null && (!Number.isFinite(fr.transition.duration) || fr.transition.duration < 250 || fr.transition.duration > 10000))
-                                issues.push('invalid transition duration: ' + fr.id);
-                            if (!['easeInOut'].includes(fr.transition.easing)) issues.push('invalid transition easing: ' + fr.id);
-                        }
-                        b.tokens.forEach(function (tk) {
-                            if (!fr.pos || !fr.pos[tk.id]) issues.push('missing position: ' + tk.id + '@' + fi);
-                        });
-                        (fr.shapes || []).forEach(function (sh) {
-                            if (!sh || !sh.id) issues.push('shape missing id @' + fi);
-                            if (PATH_TOOLS[sh.tool]) {
-                                // Movement on the final phase is drawable but deliberately has no
-                                // actor because it has no outgoing transition to animate.
-                                const finalPhase = fi >= b.frames.length - 1;
-                                if (!sh.actorId) {
-                                    if (!finalPhase) issues.push('movement missing actor: ' + (sh.id || '?'));
-                                } else if (!ids.has(sh.actorId)) issues.push('orphan movement actor: ' + sh.actorId);
-                                else {
-                                    const tk = b.tokens.find((t) => t.id === sh.actorId);
-                                    if (sh.tool === 'pass' && tk.type !== 'ball') issues.push('pass actor is not ball: ' + sh.id);
-                                    if (sh.tool !== 'pass' && tk.type !== 'player') issues.push('run actor is not player: ' + sh.id);
-                                }
-                                if (sh.fromPhaseId && sh.fromPhaseId !== fr.id) issues.push('movement fromPhase mismatch: ' + sh.id);
-                                if (fi < b.frames.length - 1 && sh.toPhaseId && sh.toPhaseId !== b.frames[fi + 1].id) issues.push('movement toPhase mismatch: ' + sh.id);
-                            }
-                        });
-                    });
-                    return issues;
-                }
                 function normaliseBoardModel(b) {
                     if (!b || !Array.isArray(b.tokens) || !Array.isArray(b.frames) || !b.frames.length) return b;
                     const tokenIds = new Set(b.tokens.map((t) => t.id));
@@ -3630,6 +4181,12 @@
                         frameDurs.push(Math.max(MIN_MS, Math.min(MAX_MS, duration)) * mult);
                     }
                 }
+                function firePlayComplete() {
+                    if (!onPlayComplete) return;
+                    const cb = onPlayComplete;
+                    onPlayComplete = null;
+                    cb();
+                }
                 function timelineTotalMs() {
                     return (
                         START_HOLD_MS + frameDurs.reduce(function (a, b) { return a + b; }, 0) + END_HOLD_MS
@@ -3641,10 +4198,12 @@
                     // but a bad index here used to kill the animation loop for good.
                     const lastFrame = board.frames.length - 1;
                     if (frame > lastFrame || frame < 0) frame = Math.max(0, Math.min(frame, lastFrame));
+                    let playJustEnded = false;
                     if (playing && (playTo > lastFrame || playFrom > lastFrame)) {
                         playing = false;
                         playingFrame = -1;
                         renderFoot();
+                        playJustEnded = true;
                     }
                     computeT();
                     paintPitch();
@@ -3657,7 +4216,7 @@
                         const transTotal = frameDurs.reduce(function (a, b) {
                             return a + b;
                         }, 0);
-                        let el = performance.now() - playT0;
+                        let el = (playPausedAt != null ? playPausedAt : performance.now()) - playT0;
                         let idx, rawT;
                         // Three zones on the timeline: a static start hold (orients a viewer
                         // coming to the clip cold), the normal eased transitions, and a static
@@ -3685,6 +4244,7 @@
                             renderFoot();
                             idx = nTrans;
                             rawT = 1;
+                            playJustEnded = true;
                         }
                         let t = rawT < 0.5 ? 4 * rawT * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 3) / 2;
                         const aI = Math.min(playFrom + idx, playTo);
@@ -3759,12 +4319,14 @@
                     drawCaption(capText);
                     // Share the one pending-frame slot with draw(), so a redraw requested during
                     // playback can never start a second, parallel animation loop.
-                    if (playing && !raf) {
+                    if (playing && !raf && playPausedAt == null) {
                         raf = requestAnimationFrame(function () {
                             raf = null;
                             render();
                         });
                     }
+                    // The final frame is on the canvas now; only then tell the recorder.
+                    if (playJustEnded) firePlayComplete();
                 }
                 // The pitch never changes between animation frames, so bake it once and blit it.
                 function pitchCacheKey(b) {
@@ -3780,6 +4342,7 @@
                         zoom.toFixed(3),
                         Math.round(panX),
                         Math.round(panY),
+                        sunMode ? 's' : 'd',
                     ].join('|');
                 }
                 function paintPitch(b) {
@@ -3913,11 +4476,11 @@
                     return { x: Math.max(-2, Math.min(m.L + 2, x)), y: Math.max(-2, Math.min(m.W + 2, y)) };
                 }
 
-                // `includeMulti` is accepted for call-site clarity (grouped multi-drag vs. a plain
-                // hit test) but grouping itself is decided by the pointerdown handler, which already
-                // filters selectedMulti down to the same team; keeping it here was dead code that
-                // always fell through to the same result regardless of its value.
-                function hitToken(X, Y, includeMulti) {
+                // `includeMulti` used to be accepted for call-site clarity (grouped multi-drag vs. a
+                // plain hit test) but grouping itself is decided by the pointerdown handler, which
+                // already filters selectedMulti down to the same team; keeping it here was dead code
+                // that always fell through to the same result regardless of its value. Removed.
+                function hitToken(X, Y) {
                     const R = radius() + 14;
                     const check = (t) => {
                         if (!shown(t)) return false;
@@ -4027,7 +4590,7 @@
                         const hasCtrl = isCtrlDown || e.ctrlKey || e.metaKey;
                         if (
                             e.button === 1 ||
-                            (e.button === 0 && hasShift && !hasCtrl && !hitToken(X, Y, false))
+                            (e.button === 0 && hasShift && !hasCtrl && !hitToken(X, Y))
                         ) {
                             isPanning = true;
                             panStartX = e.clientX;
@@ -4039,7 +4602,7 @@
                             return;
                         }
                         if (tool === 'move') {
-                            const t = hitToken(X, Y, true);
+                            const t = hitToken(X, Y);
                             if (t) {
                                 const p = livePos(t.id);
                                 const q = toScreen(p.x, p.y);
@@ -4071,7 +4634,9 @@
                                     sx: X,
                                     sy: Y,
                                     slop: e.pointerType === 'mouse' ? 3 : 8,
-                                    snap: snapshot(),
+                                    // Serialised lazily on the first real move (the whole board, so
+                                    // doing it on every press hitched low-end phones).
+                                    snap: null,
                                     moved: false,
                                     t0: performance.now(),
                                 };
@@ -4091,7 +4656,7 @@
                             return;
                         }
                         if (tool === 'erase') {
-                            const t = hitToken(X, Y, false);
+                            const t = hitToken(X, Y);
                             if (t) {
                                 pushUndo();
                                 removeToken(t.id);
@@ -4166,6 +4731,7 @@
                                 // A finger always wobbles a little. Below the slop it is still a tap.
                                 if (Math.hypot(X - d.sx, Y - d.sy) < d.slop) return;
                                 d.moved = true;
+                                d.snap = snapshot();
                                 undoStack.push(d.snap);
                                 trimUndo();
                                 redoStack = [];
@@ -4251,6 +4817,23 @@
             window.addEventListener('blur', cancelDraw);
             document.addEventListener('visibilitychange', function () {
                 if (document.hidden) cancelDraw();
+                // Fix 2: freeze the play clock while hidden and shift playT0 by the hidden time on
+                // return, so playback carries on from the same point rather than skipping to the end.
+                if (!playing) {
+                    playPausedAt = null;
+                    return;
+                }
+                if (document.hidden) {
+                    if (playPausedAt == null) playPausedAt = performance.now();
+                    if (raf) {
+                        cancelAnimationFrame(raf);
+                        raf = null;
+                    }
+                } else if (playPausedAt != null) {
+                    playT0 += performance.now() - playPausedAt;
+                    playPausedAt = null;
+                    draw();
+                }
             });
 
                 cv.addEventListener(
@@ -4258,8 +4841,19 @@
                     function (e) {
                         e.preventDefault();
                         if (playing || recordingVideo) return;
+                        // Keep the pitch point under the cursor fixed while zooming, like a map app.
+                        const { X, Y } = localXY(e);
+                        computeT();
+                        const before = toPitch(X, Y);
                         // Scroll up / pinch out zooms in, like every map app.
                         zoom *= e.deltaY < 0 ? 0.9 : 1.1;
+                        clampView();
+                        computeT();
+                        const after = toPitch(X, Y);
+                        // Pan is held in pitch metres and moves the view centre one-for-one, so the
+                        // difference is exactly the shift needed to bring the point back under the cursor.
+                        panX += before.x - after.x;
+                        panY += before.y - after.y;
                         clampView();
                         draw();
                     },
@@ -4563,14 +5157,17 @@
                     frame = fromIdx;
                     playingFrame = fromIdx;
                     playT0 = performance.now();
+                    playPausedAt = null;
                     renderFoot();
                     render();
                 }
                 function stop() {
                     playing = false;
                     playingFrame = -1;
+                    playPausedAt = null;
                     renderFoot();
                     draw();
+                    firePlayComplete();
                 }
 
                 function saveCustomPlay(name) {
@@ -4697,6 +5294,9 @@
                     (list || []).forEach(function (p) {
                         if (customPlays.length >= MAX_PLAYS) return;
                         const clean = sanitisePlay(p);
+                        // Importing the same file twice gave two plays one id, which made loading
+                        // one of them look like "reloading" the other.
+                        if (clean && customPlays.some((x) => x.id === clean.id)) clean.id = 'custom-' + uid();
                         if (clean) {
                             customPlays.push(clean);
                             added++;
@@ -4881,7 +5481,7 @@
                     storageOK = false;
                     if (storageWarned) return;
                     storageWarned = true;
-                    toast('This device will not store your work — use Boards › Export');
+                    toast('This device will not store your work — use More › Boards › Export');
                 }
                 // Board edits arrive in bursts (every drag, every phase change). Serialising the whole
                 // library on each one stalls the main thread, so coalesce writes and flush on the way out.
@@ -5170,6 +5770,8 @@
                             '<' + tag + ' ' + at(o) + (inner == null ? '/>' : '>' + inner + '</' + tag + '>'),
                         );
                     const lw = 0.28;
+                    const gradIds = {},
+                        gradDefs = {};
                     el('rect', { x: v.x0, y: v.y0, width: W, height: H, fill: turf });
                     const line = (x1, y1, x2, y2, dash) =>
                         el(
@@ -5308,23 +5910,43 @@
                             const fill = t.color || (t.team === 'home' ? board.home : board.away);
                             const shirt = board.tokenShape === 'shirt';
                             const s = R * 1.05;
+                            const dark = inkOn(fill) === INK;
+                            const trim = dark ? mixHex(fill, 'white', 0.55) : mixHex(fill, 'black', 0.38);
+                            const gid = 'kg' + (gradIds[fill] || (gradIds[fill] = 'g' + Object.keys(gradIds).length));
+                            if (!gradDefs[gid])
+                                gradDefs[gid] =
+                                    '<linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1">' +
+                                    '<stop offset="0" stop-color="' + mixHex(fill, 'white', 0.26) + '"/>' +
+                                    '<stop offset="0.5" stop-color="' + esc(fill) + '"/>' +
+                                    '<stop offset="1" stop-color="' + mixHex(fill, 'black', 0.24) + '"/></linearGradient>';
                             if (shirt) {
-                                el('polygon', {
-                                    points: SHIRT_PTS.map(function (pt) {
-                                        return (q.x + pt[0] * s).toFixed(3) + ',' + (q.y + pt[1] * s).toFixed(3);
-                                    }).join(' '),
-                                    fill: fill,
-                                    stroke: 'rgba(0,0,0,.45)',
-                                    'stroke-width': 0.14,
+                                el('path', {
+                                    d: kitSvgPath(q.x, q.y, s),
+                                    fill: 'url(#' + gid + ')',
+                                    stroke: mixHex(fill, 'black', dark ? 0.55 : 0.42),
+                                    'stroke-width': 0.12,
+                                    'stroke-linejoin': 'round',
+                                    filter: 'url(#kshadow)',
+                                });
+                                el('path', {
+                                    d:
+                                        'M' + (q.x - 0.27 * s).toFixed(3) + ',' + (q.y - 0.99 * s).toFixed(3) +
+                                        ' Q' + q.x.toFixed(3) + ',' + (q.y - 0.6 * s).toFixed(3) + ' ' +
+                                        (q.x + 0.27 * s).toFixed(3) + ',' + (q.y - 0.99 * s).toFixed(3),
+                                    fill: 'none',
+                                    stroke: trim,
+                                    'stroke-width': Math.max(0.12, s * 0.13).toFixed(3),
+                                    'stroke-linecap': 'round',
                                 });
                             } else {
                                 el('circle', {
                                     cx: q.x,
                                     cy: q.y,
                                     r: R,
-                                    fill: fill,
-                                    stroke: 'rgba(0,0,0,.45)',
-                                    'stroke-width': 0.14,
+                                    fill: 'url(#' + gid + ')',
+                                    stroke: mixHex(fill, 'black', dark ? 0.55 : 0.42),
+                                    'stroke-width': 0.12,
+                                    filter: 'url(#kshadow)',
                                 });
                             }
                             const bottom = shirt ? s * 1.02 : R;
@@ -5453,6 +6075,10 @@
                         '" height="' +
                         Math.round(H * 14) +
                         '">' +
+                        '<defs><filter id="kshadow" x="-40%" y="-40%" width="180%" height="190%">' +
+                        '<feDropShadow dx="0.12" dy="0.3" stdDeviation="0.3" flood-color="#000" flood-opacity="0.45"/></filter>' +
+                        Object.keys(gradDefs).map((k) => gradDefs[k]).join('') +
+                        '</defs>' +
                         out.join('') +
                         '</svg>';
                     const ok = download(
@@ -5465,7 +6091,7 @@
 
                 // prettier-ignore
                 const I = {
-            move:['M6 3l13 7.5-5.6 1.4L11 18.5z'], run:['M3 12h13','M12.5 7.5L18 12l-5.5 4.5'], pass:['M3 12h13','M12.5 7.5L18 12l-5.5 4.5'], dribble:['M3 13c1.8-4 3.5 4 5.3 0s3.5-4 5.2 0','M14.5 8.5L19 13l-4.5 4.5'], pen:['M4 20l4.2-1.1 9.4-9.4-3.1-3.1-9.4 9.4z','M14.5 6.4l3.1 3.1'], zone:['M4 6h16v12H4z'], erase:['M8.5 18h11','M5 15.5l7-7 4.5 4.5-7 7z'], undo:['M8.5 8H4.5V4','M4.7 8.2A7.2 7.2 0 1 1 5 15.6'], clear:['M5 7h14','M9.5 7V4.5h5V7','M7 7l1 12.5h8L17 7'], play:['M8 5l11 7-11 7z'], stop:['M6.5 6.5h11v11h-11z'], prev:['M15 5l-7 7 7 7'], next:['M9 5l7 7-7 7'], plus:['M12 5v14','M5 12h14'], squad:['M9 11a3.4 3.4 0 100-6.8A3.4 3.4 0 009 11z','M2.5 20a6.5 6.5 0 0113 0','M16 5.2a3 3 0 010 5.9','M17 14.4a6 6 0 014.5 5.6'], shape:['M12 3.5l8 5v7l-8 5-8-5v-7z','M12 3.5v17','M4 8.5l8 5 8-5'], add:['M12 5v14','M5 12h14'], boards:['M4 5h16v14H4z','M4 10h16','M10 10v9'], image:['M4 6h16v12H4z','M7.5 14.5l3-3 2.5 2.5 2.5-2.5 2.5 2.5'], full:['M4 9V4h5','M20 9V4h-5','M20 15v5h-5','M4 15v5h5'], help:['M9.6 9a2.5 2.5 0 114 2c-1 .8-1.6 1.3-1.6 2.6','M12 17.5v.01'], loop:['M4 8h12a3.5 3.5 0 010 7H8','M7 5L4 8l3 3'], copy:['M8 8h11v11H8z','M5 16V5h11'], home:['M4 11.2L12 4l8 7.2','M6.5 9.8V20h11V9.8','M10 20v-5.5h4V20'], licence:['M6 3.5h8l4 4v13H6z','M14 3.5v4h4','M9 12h6','M9 16h4'], plays:['M4 6.5h9','M4 12h9','M4 17.5h6','M15.5 9.5l5 3-5 3z'], setup:['M4 7h9','M17 7h3','M4 17h3','M11 17h9','M15 4.6v4.8','M9 14.6v4.8'], onpitch:['M12 19V5','M6.5 10.5L12 5l5.5 5.5'], offpitch:['M12 5v14','M17.5 13.5L12 19l-5.5-5.5'], close:['M6 6l12 12','M18 6L6 18'], x:['M6 6l12 12','M18 6L6 18'], chalk:['M4 10a8 8 0 018-8v8a8 8 0 01-8 8z','M12 2a8 8 0 018 8h-8V2z','M4 10a8 8 0 008 8'], roster:['M4 6h16v12H4z','M10 6v12','M7 10h6','M7 14h6'], share:['M12 15V4','M8 8l4-4 4 4','M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6']
+            move:['M6 3l13 7.5-5.6 1.4L11 18.5z'], run:['M3 12h13','M12.5 7.5L18 12l-5.5 4.5'], pass:['M2.5 12h3','M8.5 12h3','M14.5 12h2.5','M12.5 7.5L18 12l-5.5 4.5'], dribble:['M3 13c1.8-4 3.5 4 5.3 0s3.5-4 5.2 0','M14.5 8.5L19 13l-4.5 4.5'], pen:['M4 20l4.2-1.1 9.4-9.4-3.1-3.1-9.4 9.4z','M14.5 6.4l3.1 3.1'], zone:['M4 6h16v12H4z'], erase:['M8.5 18h11','M5 15.5l7-7 4.5 4.5-7 7z'], undo:['M8.5 8H4.5V4','M4.7 8.2A7.2 7.2 0 1 1 5 15.6'], clear:['M5 7h14','M9.5 7V4.5h5V7','M7 7l1 12.5h8L17 7'], play:['M8 5l11 7-11 7z'], stop:['M6.5 6.5h11v11h-11z'], prev:['M15 5l-7 7 7 7'], next:['M9 5l7 7-7 7'], plus:['M12 5v14','M5 12h14'], squad:['M9 11a3.4 3.4 0 100-6.8A3.4 3.4 0 009 11z','M2.5 20a6.5 6.5 0 0113 0','M16 5.2a3 3 0 010 5.9','M17 14.4a6 6 0 014.5 5.6'], shape:['M12 3.5l8 5v7l-8 5-8-5v-7z','M12 3.5v17','M4 8.5l8 5 8-5'], add:['M12 5v14','M5 12h14'], boards:['M4 5h16v14H4z','M4 10h16','M10 10v9'], image:['M4 6h16v12H4z','M7.5 14.5l3-3 2.5 2.5 2.5-2.5 2.5 2.5'], full:['M4 9V4h5','M20 9V4h-5','M20 15v5h-5','M4 15v5h5'], help:['M9.6 9a2.5 2.5 0 114 2c-1 .8-1.6 1.3-1.6 2.6','M12 17.5v.01'], loop:['M4 8h12a3.5 3.5 0 010 7H8','M7 5L4 8l3 3'], copy:['M8 8h11v11H8z','M5 16V5h11'], home:['M4 11.2L12 4l8 7.2','M6.5 9.8V20h11V9.8','M10 20v-5.5h4V20'], licence:['M6 3.5h8l4 4v13H6z','M14 3.5v4h4','M9 12h6','M9 16h4'], plays:['M4 6.5h9','M4 12h9','M4 17.5h6','M15.5 9.5l5 3-5 3z'], setup:['M4 7h9','M17 7h3','M4 17h3','M11 17h9','M15 4.6v4.8','M9 14.6v4.8'], onpitch:['M12 19V5','M6.5 10.5L12 5l5.5 5.5'], offpitch:['M12 5v14','M17.5 13.5L12 19l-5.5-5.5'], close:['M6 6l12 12','M18 6L6 18'], more:['M4.6 12a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0','M10.6 12a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0','M16.6 12a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0 -2.8 0'], x:['M6 6l12 12','M18 6L6 18'], chalk:['M4 10a8 8 0 018-8v8a8 8 0 01-8 8z','M12 2a8 8 0 018 8h-8V2z','M4 10a8 8 0 008 8'], roster:['M4 6h16v12H4z','M10 6v12','M7 10h6','M7 14h6'], share:['M12 15V4','M8 8l4-4 4 4','M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6']
         };
                 function icon(name) {
                     const d = I[name] || [];
@@ -5504,16 +6130,26 @@
                     { k: 'zone', label: 'Zone', aria: 'Shade an area' },
                     { k: 'erase', label: 'Erase', aria: 'Erase' },
                 ];
-                function renderTools() {
+                // The toolbar is built once and afterwards only updated in place: rebuilding it on
+                // every tool switch, undo, colour pick and team toggle threw away keyboard focus and
+                // re-created every listener.
+                const toolRefs = { tools: {}, pens: {}, teams: {}, badge: null, uc: null, undoBtn: null, redoBtn: null, sep: null, narrow: null };
+                function buildTools() {
                     toolsBar.innerHTML = '';
                     const brand = document.createElement('span');
                     brand.className = 'brand';
                     brand.innerHTML = icon('chalk') + '<span>CHALK<small>tactical board</small></span>';
                     toolsBar.appendChild(brand);
-                    toolsBar.appendChild(buildProfileBadge());
+                    toolRefs.badge = buildProfileBadge();
+                    toolsBar.appendChild(toolRefs.badge);
                     toolsBar.appendChild(document.createElement('div')).className = 'sep';
+                    const seg = document.createElement('div');
+                    seg.className = 'seg';
+                    seg.setAttribute('role', 'group');
+                    seg.setAttribute('aria-label', 'Drawing tools');
+                    toolsBar.appendChild(seg);
                     TOOLS.forEach((t) => {
-                        toolsBar.appendChild(
+                        const tb = seg.appendChild(
                             btn({
                                 icon: t.k,
                                 label: t.label,
@@ -5530,6 +6166,7 @@
                                 },
                             }),
                         );
+                        toolRefs.tools[t.k] = tb;
                     });
                     const sep = document.createElement('div');
                     sep.className = 'sep';
@@ -5547,13 +6184,14 @@
                             renderTools();
                         });
                         sw.appendChild(s);
+                        toolRefs.pens[c] = s;
                     });
                     toolsBar.appendChild(sw);
                     const sep2 = document.createElement('div');
                     sep2.className = 'sep';
                     toolsBar.appendChild(sep2);
-                    toolsBar.appendChild(teamToggle('home'));
-                    toolsBar.appendChild(teamToggle('away'));
+                    toolRefs.teams.home = toolsBar.appendChild(teamToggle('home'));
+                    toolRefs.teams.away = toolsBar.appendChild(teamToggle('away'));
                     const sep3 = document.createElement('div');
                     sep3.className = 'sep';
                     toolsBar.appendChild(sep3);
@@ -5569,6 +6207,11 @@
                     uc.className = 'undo-counter';
                     uc.textContent = undoStack.length + '/' + redoStack.length;
                     toolsBar.appendChild(uc);
+                    toolRefs.uc = uc;
+                    toolRefs.undoBtn = undoBtn;
+                    toolRefs.redoBtn = redoBtn;
+                    toolRefs.sep = sep;
+                    toolRefs.sep3 = sep3;
                     toolsBar.appendChild(
                         btn({
                             icon: 'clear',
@@ -5605,9 +6248,49 @@
                     spinner.className = 'loading-spinner';
                     spinner.innerHTML = '<span class="spin"></span><span>Loading…</span>';
                     toolsBar.appendChild(spinner);
-                    if (narrowUI()) {
-                        toolsBar.insertBefore(undoBtn, sep);
-                        toolsBar.insertBefore(redoBtn, sep);
+                    toolRefs.narrow = null;
+                }
+                function renderTools() {
+                    if (!toolRefs.uc || !toolsBar.contains(toolRefs.uc)) buildTools();
+                    TOOLS.forEach(function (t) {
+                        const b = toolRefs.tools[t.k];
+                        if (!b) return;
+                        const on = tool === t.k;
+                        b.classList.toggle('on', on);
+                        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    });
+                    PENS.forEach(function (c) {
+                        const s = toolRefs.pens[c];
+                        if (!s) return;
+                        s.classList.toggle('on', pen === c);
+                        s.setAttribute('aria-pressed', pen === c ? 'true' : 'false');
+                    });
+                    ['home', 'away'].forEach(function (team) {
+                        const b = toolRefs.teams[team];
+                        if (!b) return;
+                        const off = !!board.hide[team];
+                        const name = team === 'home' ? 'Home' : 'Away';
+                        b.classList.toggle('off', off);
+                        b.setAttribute('aria-label', (off ? 'Show ' : 'Hide ') + name.toLowerCase() + ' team');
+                        b.setAttribute('aria-pressed', off ? 'false' : 'true');
+                        const dot = b.querySelector('.dot');
+                        if (dot) dot.style.background = board[team];
+                    });
+                    toolRefs.uc.textContent = undoStack.length + '/' + redoStack.length;
+                    // Targeted refresh of the coach/team badge (it changes rarely; rebuilt only if different).
+                    const fresh = buildProfileBadge();
+                    if (!toolRefs.badge || fresh.outerHTML !== toolRefs.badge.outerHTML) {
+                        if (toolRefs.badge && toolRefs.badge.parentNode) toolRefs.badge.replaceWith(fresh);
+                        toolRefs.badge = fresh;
+                    }
+                    // Phones: Undo/Redo straight after the tools. Only move them when the layout
+                    // actually changes, so a focused button is never pulled out from under the user.
+                    const narrow = narrowUI();
+                    if (toolRefs.narrow !== narrow) {
+                        const anchor = narrow ? toolRefs.sep : toolRefs.uc;
+                        toolsBar.insertBefore(toolRefs.undoBtn, anchor);
+                        toolsBar.insertBefore(toolRefs.redoBtn, anchor);
+                        toolRefs.narrow = narrow;
                     }
                 }
 
@@ -5720,6 +6403,8 @@
                     numInput.style.color = 'var(--chalk-ink)';
                     numInput.style.fontWeight = '700';
                     numInput.style.textAlign = 'center';
+                    numInput.setAttribute('aria-label', 'Shirt number');
+                    numInput.inputMode = 'numeric';
                     numInput.addEventListener('change', function () {
                         const val = this.value.trim();
                         if (!val) {
@@ -5784,6 +6469,7 @@
                 }
 
                 function bringOn(t) {
+                    if (!stopForEdit()) return;
                     pushUndo();
                     const out =
                         selected &&
@@ -5817,6 +6503,7 @@
                     renderPanel();
                 }
                 function takeOff(t) {
+                    if (!stopForEdit()) return;
                     pushUndo();
                     t.bench = true;
                     if (selected === t.id) select(null);
@@ -5908,6 +6595,7 @@
                     add.className = 'paddsub';
                     add.textContent = '+ Add substitute';
                     add.addEventListener('click', function () {
+                        if (!tokenRoom()) return;
                         pushUndo();
                         const t = {
                             id: uid(),
@@ -6073,6 +6761,7 @@
                                 imgHi: imgHi,
                                 videoSlow: videoSlow,
                                 videoHi: videoHi,
+                                sun: sunMode,
                             }),
                         );
                     } catch (e) {}
@@ -6088,7 +6777,16 @@
                             imgHi = r.imgHi !== false;
                             videoSlow = !!r.videoSlow;
                             videoHi = !!r.videoHi;
+                            sunMode = !!r.sun;
+                            return;
                         }
+                    } catch (e) {}
+                    // First load only (nothing stored yet): take the theme from the device. Once any
+                    // UI preference is saved, the stored value always wins, so a coach's choice sticks.
+                    // Sunlight mode is the light theme, so it follows a light OS preference.
+                    try {
+                        if (typeof window.matchMedia === 'function')
+                            sunMode = window.matchMedia('(prefers-color-scheme: light)').matches;
                     } catch (e) {}
                 }
                 const KEY_UI = 'chalk.ui.v1';
@@ -6097,126 +6795,11 @@
                     const hint = document.getElementById('captionHint');
                     if (hint) hint.style.display = board.captions === false ? 'none' : '';
                     footBar.innerHTML = '';
-                    footBar.appendChild(
-                        btn({
-                            icon: 'home',
-                            label: 'Front page',
-                            wide: true,
-                            aria: 'Back to the front page',
-                            go: openHome,
-                        }),
-                    );
-                    const fsep = document.createElement('div');
-                    fsep.className = 'sep';
-                    footBar.appendChild(fsep);
-                    footBar.appendChild(
-                        btn({
-                            icon: 'squad',
-                            label: 'Team',
-                            on: panelOpen,
-                            aria: 'Show or hide the team list',
-                            go: function () {
-                                panelOpen = !panelOpen;
-                                saveUI();
-                                renderPanel();
-                                renderFoot();
-                                resize();
-                            },
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'setup',
-                            label: 'Setup',
-                            go: function () {
-                                openSheet('squad');
-                            },
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'shape',
-                            label: 'Shape',
-                            go: function () {
-                                openSheet('shape');
-                            },
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'add',
-                            label: 'Add',
-                            go: function () {
-                                openSheet('add');
-                            },
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'plays',
-                            label: 'Plays',
-                            go: function () {
-                                openSheet('plays');
-                            },
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'boards',
-                            label: 'Boards',
-                            go: function () {
-                                openSheet('boards');
-                            },
-                        }),
-                    );
-                    const sp = document.createElement('div');
-                    sp.className = 'spacer';
-                    footBar.appendChild(sp);
-                    const ph = document.createElement('div');
-                    ph.className = 'phase';
-                    const dragArea = document.createElement('div');
-                    dragArea.className = 'phase-drag-area';
-                    dragArea.innerHTML = '<span class="handle" aria-hidden="true">⠿</span>';
-                    dragArea.draggable = true;
-                    dragArea.dataset.index = frame;
-                    dragArea.addEventListener('dragstart', function (e) {
-                        e.dataTransfer.setData('text/plain', String(frame));
-                    });
-                    dragArea.addEventListener('dragover', function (e) {
-                        e.preventDefault();
-                        this.closest('.phase').style.borderColor = 'var(--chalk-amber)';
-                    });
-                    dragArea.addEventListener('dragleave', function (e) {
-                        this.closest('.phase').style.borderColor = '';
-                    });
-                    dragArea.addEventListener('drop', function (e) {
-                        e.preventDefault();
-                        this.closest('.phase').style.borderColor = '';
-                        const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                        const to = parseInt(this.dataset.index, 10);
-                        if (!isNaN(from) && !isNaN(to) && from !== to) movePhase(from, to);
-                    });
-                    ph.appendChild(dragArea);
-                    const upArrow = document.createElement('button');
-                    upArrow.className = 'btn ghost';
-                    upArrow.innerHTML = '▲';
-                    upArrow.style.fontSize = '12px';
-                    upArrow.style.padding = '0 4px';
-                    upArrow.setAttribute('aria-label', 'Move this phase earlier');
-                    upArrow.disabled = frame === 0;
-                    upArrow.addEventListener('click', function () {
-                        if (frame > 0) movePhase(frame, frame - 1);
-                    });
-                    const downArrow = document.createElement('button');
-                    downArrow.className = 'btn ghost';
-                    downArrow.innerHTML = '▼';
-                    downArrow.style.fontSize = '12px';
-                    downArrow.style.padding = '0 4px';
-                    downArrow.setAttribute('aria-label', 'Move this phase later');
-                    downArrow.disabled = frame >= board.frames.length - 1;
-                    downArrow.addEventListener('click', function () {
-                        if (frame < board.frames.length - 1) movePhase(frame, frame + 1);
-                    });
+                    const currentFrame = playing && playingFrame >= 0 ? playingFrame : frame;
+
+                    // ---- transport: the controls a thumb needs, always in view ----
+                    const tr = document.createElement('div');
+                    tr.className = 'transport';
                     const prev = btn({
                         icon: 'prev',
                         ghost: true,
@@ -6225,16 +6808,6 @@
                             goPhase(frame - 1);
                         },
                     });
-                    const cnt = document.createElement('div');
-                    cnt.className = 'count';
-                    const currentFrame = playing && playingFrame >= 0 ? playingFrame : frame;
-                    cnt.appendChild(document.createTextNode('Phase '));
-                    cnt.appendChild(elem('b', null, String(currentFrame + 1)));
-                    cnt.appendChild(document.createTextNode(' of ' + board.frames.length));
-                    const currentPhaseName = board.frames[currentFrame] && board.frames[currentFrame].name;
-                    if (currentPhaseName) {
-                        cnt.appendChild(document.createTextNode(' · ' + currentPhaseName));
-                    }
                     const next = btn({
                         icon: 'next',
                         ghost: true,
@@ -6245,53 +6818,16 @@
                     });
                     prev.disabled = frame === 0;
                     next.disabled = frame === board.frames.length - 1;
-                    [prev, next].forEach((b) => {
-                        b.style.opacity = b.disabled ? 0.35 : 1;
-                    });
-                    ph.appendChild(upArrow);
-                    ph.appendChild(downArrow);
-                    ph.appendChild(prev);
-                    ph.appendChild(cnt);
-                    ph.appendChild(next);
-                    const timingBtn = document.createElement('button');
-                    timingBtn.className = 'btn ghost wide';
-                    timingBtn.innerHTML = '<small>' + phaseTimingLabel(frame) + '</small>';
-                    timingBtn.setAttribute('aria-label', 'Transition speed: ' + phaseTimingLabel(frame));
-                    timingBtn.title = frame < board.frames.length - 1
-                        ? 'Set the transition speed from this phase to the next'
-                        : 'Last phase has no outgoing transition';
-                    timingBtn.disabled = frame >= board.frames.length - 1;
-                    timingBtn.style.opacity = timingBtn.disabled ? 0.45 : 1;
-                    timingBtn.addEventListener('click', function () { cyclePhaseTiming(frame); });
-                    ph.appendChild(timingBtn);
-                    ph.appendChild(btn({ icon: 'plus', label: 'Phase', aria: 'Add a phase', go: addPhase }));
-                    ph.appendChild(
-                        btn({ icon: 'copy', ghost: true, aria: 'Duplicate this phase', go: duplicatePhase }),
-                    );
-                    ph.appendChild(
-                        btn({ icon: 'x', ghost: true, aria: 'Delete this phase', go: deletePhase }),
-                    );
-                    ph.appendChild(
-                        btn({
-                            icon: 'loop',
-                            ghost: true,
-                            on: loop,
-                            aria: 'Loop playback',
-                            go: function () {
-                                loop = !loop;
-                                renderFoot();
-                            },
-                        }),
-                    );
-                    const savePlayBtn = document.createElement('button');
-                    savePlayBtn.className = 'btn ghost wide';
-                    savePlayBtn.innerHTML = '<small>Save as play</small>';
-                    savePlayBtn.setAttribute('aria-label', 'Save as play');
-                    savePlayBtn.addEventListener('click', function () {
-                        const name = prompt('Name your custom play:', 'My play');
-                        if (name) saveCustomPlay(name);
-                    });
-                    ph.appendChild(savePlayBtn);
+                    const cnt = document.createElement('div');
+                    cnt.className = 'count';
+                    cnt.setAttribute('aria-live', 'polite');
+                    const currentPhaseName = board.frames[currentFrame] && board.frames[currentFrame].name;
+                    cnt.appendChild(elem('span', 'pname-tag', currentPhaseName || 'Phase'));
+                    const line = elem('span', 'pnum', null);
+                    line.appendChild(elem('b', null, String(currentFrame + 1)));
+                    line.appendChild(document.createTextNode(' of ' + board.frames.length));
+                    cnt.appendChild(line);
+                    cnt.setAttribute('aria-label', 'Phase ' + (currentFrame + 1) + ' of ' + board.frames.length + (currentPhaseName ? ', ' + currentPhaseName : ''));
                     const playBtn = btn({
                         icon: playing ? 'stop' : 'play',
                         label: playing ? 'Stop' : 'Play',
@@ -6301,60 +6837,76 @@
                             playing ? stop() : play();
                         },
                     });
-                    if (playing) playBtn.classList.add('on');
-                    ph.appendChild(playBtn);
-                    const speedBtn = document.createElement('button');
-                    speedBtn.className = 'btn ghost wide playback-speed' + (playbackSpeed !== 1 ? ' is-fast' : '');
-                    speedBtn.innerHTML = '<small>Speed ' + playbackSpeedLabel() + '</small>';
-                    speedBtn.title = 'Change playback speed: 0.5×, 1×, 1.5× or 2×';
-                    speedBtn.setAttribute('aria-label', 'Playback speed ' + playbackSpeedLabel() + '. Click to change');
-                    speedBtn.addEventListener('click', cyclePlaybackSpeed);
-                    ph.appendChild(speedBtn);
-                    footBar.appendChild(ph);
-                    cnt.setAttribute('aria-live', 'polite');
-                    if (narrowUI()) {
-                        [speedBtn, playBtn, next, cnt, prev].forEach(function (n) {
-                            ph.insertBefore(n, ph.firstChild);
-                        });
-                        footBar.insertBefore(ph, footBar.firstChild);
+                    playBtn.classList.add('play-main');
+                    if (playing) playBtn.classList.add('is-playing');
+                    if (playbackSpeed !== 1 || loop) {
+                        const badge = elem('span', 'play-badge', (loop ? '⟲ ' : '') + (playbackSpeed !== 1 ? playbackSpeedLabel() : ''));
+                        badge.setAttribute('aria-hidden', 'true');
+                        playBtn.appendChild(badge);
+                        playBtn.setAttribute(
+                            'aria-label',
+                            (playing ? 'Stop' : 'Play') + (playbackSpeed !== 1 ? ', ' + playbackSpeedLabel() + ' speed' : '') + (loop ? ', looping' : ''),
+                        );
                     }
-                    const sp2 = document.createElement('div');
-                    sp2.className = 'spacer';
-                    footBar.appendChild(sp2);
-                    footBar.appendChild(
-                        btn({
-                            icon: 'share',
-                            label: recordingVideo ? 'Recording…' : 'Share',
-                            on: recordingVideo,
-                            aria: 'Record the animation as a video and share it, e.g. to WhatsApp',
-                            go: exportVideo,
-                        }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'image',
-                            label: 'Image',
-                            go: function () {
-                                openSheet('image');
+                    const shareBtn = btn({
+                        icon: 'share',
+                        label: recordingVideo ? 'Recording…' : 'Share',
+                        aria: 'Record the animation as a video and share it, e.g. to WhatsApp',
+                        go: exportVideo,
+                    });
+                    shareBtn.classList.add('soft');
+                    if (recordingVideo) shareBtn.classList.add('on');
+                    const phaseBtn = btn({
+                        icon: 'more',
+                        label: 'Phase',
+                        aria: 'Phase options',
+                        go: function () {
+                            openSheet('phase');
+                        },
+                    });
+                    phaseBtn.classList.add('soft');
+                    [prev, cnt, next, playBtn, shareBtn, phaseBtn].forEach(function (n) {
+                        tr.appendChild(n);
+                    });
+
+                    // ---- tab bar: where things live ----
+                    const nav = document.createElement('nav');
+                    nav.className = 'tabs';
+                    nav.setAttribute('aria-label', 'Main');
+                    const tab = function (iconName, label, aria, go, on) {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'tab' + (on ? ' on' : '');
+                        b.innerHTML = icon(iconName);
+                        b.appendChild(elem('span', null, label));
+                        b.setAttribute('aria-label', aria || label);
+                        if (on != null) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                        b.addEventListener('click', go);
+                        return b;
+                    };
+                    nav.appendChild(tab('home', 'Home', 'Back to the front page', openHome));
+                    nav.appendChild(
+                        tab(
+                            'squad',
+                            'Team',
+                            'Show or hide the team list',
+                            function () {
+                                panelOpen = !panelOpen;
+                                saveUI();
+                                renderPanel();
+                                renderFoot();
+                                resize();
                             },
-                        }),
+                            panelOpen,
+                        ),
                     );
-                    footBar.appendChild(
-                        btn({ icon: 'full', ghost: true, aria: 'Full screen', go: toggleFull }),
-                    );
-                    footBar.appendChild(
-                        btn({ icon: 'help', label: 'How to use', wide: true, ghost: true, go: openGuide }),
-                    );
-                    footBar.appendChild(
-                        btn({
-                            icon: 'licence',
-                            ghost: true,
-                            aria: 'Licence',
-                            go: function () {
-                                openLicence(false);
-                            },
-                        }),
-                    );
+                    nav.appendChild(tab('setup', 'Setup', 'Setup and pitch', function () { openSheet('squad'); }));
+                    nav.appendChild(tab('add', 'Add', 'Add cones, markers and more', function () { openSheet('add'); }));
+                    nav.appendChild(tab('plays', 'Plays', 'Set plays and patterns', function () { openSheet('plays'); }));
+                    nav.appendChild(tab('more', 'More', 'More: boards, image, shape, help', function () { openSheet('more'); }));
+
+                    footBar.appendChild(tr);
+                    footBar.appendChild(nav);
                 }
 
                 const editor = document.getElementById('editor');
@@ -6522,6 +7074,7 @@
                             go: function () {
                                 pushUndo();
                                 const p = livePos(t.id);
+                                if (!tokenRoom()) return;
                                 const c = Object.assign({}, t, { id: uid() });
                                 // A copied player gets the next free shirt, never a duplicate.
                                 if (c.type === 'player') {
@@ -6592,6 +7145,8 @@
                         boards: 'Boards and backups',
                         plays: 'Set plays and patterns',
                         image: 'Save as image',
+                        phase: 'Phase ' + (frame + 1) + ' of ' + board.frames.length,
+                        more: 'More',
                     };
                     setOpen(sheet, true);
                     setOpen(scrim, true);
@@ -6609,8 +7164,173 @@
                         boards: panelBoards,
                         plays: panelPlays,
                         image: panelImage,
+                        phase: panelPhase,
+                        more: panelMore,
                     })[key](body);
                     openModal(sheet);
+                }
+                // Everything that used to crowd the footer strip, one tap behind "Phase".
+                function setPhaseTiming(index, duration) {
+                    if (index < 0 || index >= board.frames.length - 1) return;
+                    if (!stopForEdit()) return;
+                    pushUndo();
+                    const fr = board.frames[index];
+                    fr.transition = { duration: duration, easing: 'easeInOut' };
+                    normaliseBoardModel(board);
+                    saveBoard();
+                    renderFoot();
+                    draw();
+                }
+                function panelPhase(b) {
+                    const last = board.frames.length - 1;
+                    b.appendChild(h3('Phases'));
+                    b.appendChild(
+                        rowOf([
+                            { text: '+ Add phase', go: function () { closeSheet(); addPhase(); } },
+                            { text: 'Duplicate', go: function () { closeSheet(); duplicatePhase(); } },
+                            {
+                                text: 'Delete this phase',
+                                danger: true,
+                                disabled: board.frames.length < 2,
+                                go: function () {
+                                    closeSheet();
+                                    deletePhase();
+                                    toast('Phase deleted — Undo brings it back');
+                                },
+                            },
+                        ]),
+                    );
+                    b.appendChild(h3('Order'));
+                    b.appendChild(
+                        rowOf([
+                            {
+                                text: '↑ Move earlier',
+                                disabled: frame === 0,
+                                go: function () {
+                                    movePhase(frame, frame - 1);
+                                    openSheet('phase');
+                                },
+                            },
+                            {
+                                text: '↓ Move later',
+                                disabled: frame >= last,
+                                go: function () {
+                                    movePhase(frame, frame + 1);
+                                    openSheet('phase');
+                                },
+                            },
+                        ]),
+                    );
+                    if (frame < last) {
+                        b.appendChild(h3('Speed into phase ' + (frame + 2)));
+                        const cur = phaseTimingLabel(frame);
+                        b.appendChild(
+                            rowOf(
+                                [
+                                    ['Auto', null],
+                                    ['Quick', 700],
+                                    ['Normal', 1200],
+                                    ['Slow', 2000],
+                                ].map(function (o) {
+                                    return {
+                                        text: o[0],
+                                        on: cur === o[0],
+                                        go: function () {
+                                            setPhaseTiming(frame, o[1]);
+                                            openSheet('phase');
+                                        },
+                                    };
+                                }),
+                            ),
+                        );
+                        const n = elem('p', 'note', 'Auto sets the time from how far players have to travel.');
+                        b.appendChild(n);
+                    }
+                    b.appendChild(h3('Playback'));
+                    b.appendChild(
+                        rowOf(
+                            PLAYBACK_SPEEDS.map(function (v) {
+                                return {
+                                    text: v + '×',
+                                    on: playbackSpeed === v,
+                                    aria: 'Playback speed ' + v + '×',
+                                    go: function () {
+                                        playbackSpeed = v;
+                                        renderFoot();
+                                        openSheet('phase');
+                                    },
+                                };
+                            }).concat([
+                                {
+                                    text: loop ? 'Loop: on' : 'Loop: off',
+                                    on: loop,
+                                    go: function () {
+                                        loop = !loop;
+                                        renderFoot();
+                                        openSheet('phase');
+                                    },
+                                },
+                            ]),
+                        ),
+                    );
+                    b.appendChild(h3('Custom play'));
+                    b.appendChild(
+                        rowOf([
+                            {
+                                text: 'Save these phases as a play',
+                                go: function () {
+                                    askText(
+                                        'Save as a custom play',
+                                        'It will appear in Plays under Custom plays, ready to load on any board.',
+                                        'My play',
+                                        { label: 'Play name', maxLength: 60 },
+                                    ).then(function (name) {
+                                        name = (name || '').trim();
+                                        if (name) saveCustomPlay(name);
+                                    });
+                                },
+                            },
+                        ]),
+                    );
+                }
+                function panelMore(b) {
+                    b.appendChild(h3('Boards'));
+                    b.appendChild(
+                        rowOf([
+                            { text: 'Boards and backups', go: function () { openSheet('boards'); } },
+                            { text: 'Save as image', go: function () { openSheet('image'); } },
+                        ]),
+                    );
+                    b.appendChild(h3('Board'));
+                    b.appendChild(
+                        rowOf([
+                            { text: 'Shape and formations', go: function () { openSheet('shape'); } },
+                            {
+                                text: sunMode ? 'Sunlight mode: on' : 'Sunlight mode: off',
+                                on: sunMode,
+                                go: function () {
+                                    sunMode = !sunMode;
+                                    applySun();
+                                    saveUI();
+                                    openSheet('more');
+                                },
+                            },
+                            { text: 'Full screen', go: function () { closeSheet(); toggleFull(); } },
+                        ]),
+                    );
+                    b.appendChild(
+                        elem('p', 'note', 'Sunlight mode switches the screens to a bright theme that stays readable outdoors.'),
+                    );
+                    b.appendChild(h3('Help'));
+                    b.appendChild(
+                        rowOf([
+                            { text: 'How to use', go: function () { closeSheet(); openGuide(); } },
+                            { text: 'Quick tour', go: function () { closeSheet(); restartTour(); } },
+                            { text: 'Keyboard shortcuts', go: function () { closeSheet(); openShortcuts(); } },
+                            { text: 'Coach and team', go: function () { closeSheet(); openProfileSetup(false); } },
+                            { text: 'Licence', go: function () { closeSheet(); openLicence(false); } },
+                        ]),
+                    );
                 }
                 function h3(text) {
                     const e = document.createElement('h3');
@@ -6628,6 +7348,9 @@
                             c.appendChild(document.createTextNode(' '));
                             c.appendChild(elem('span', 'mini', i.mini));
                         }
+                        if (i.disabled) c.disabled = true;
+                        if (i.on != null) c.setAttribute('aria-pressed', i.on ? 'true' : 'false');
+                        if (i.aria) c.setAttribute('aria-label', i.aria);
                         c.addEventListener('click', i.go);
                         r.appendChild(c);
                     });
@@ -6984,15 +7707,25 @@
                         setCustomPitch(52.5, 68);
                     });
                     addChip('Custom dimensions', function () {
-                        const L = prompt('Length (m):', board.area ? board.area.L : 60);
-                        const W = prompt('Width (m):', board.area ? board.area.W : 40);
-                        const nL = parseFloat(L),
-                            nW = parseFloat(W);
-                        if (!isFinite(nL) || !isFinite(nW) || nL < 4 || nW < 4 || nL > 150 || nW > 120) {
-                            if (L !== null && W !== null) toast('Give a length 4–150m and a width 4–120m');
-                            return;
-                        }
-                        setCustomPitch(nL, nW);
+                        ask({
+                            title: 'Custom area',
+                            message: 'Size of the area you are marking out, in metres.',
+                            ok: 'Set area',
+                            fields: [
+                                { label: 'Length (4–150 m)', type: 'number', min: 4, max: 150, value: board.area ? board.area.L : 60 },
+                                { label: 'Width (4–120 m)', type: 'number', min: 4, max: 120, value: board.area ? board.area.W : 40 },
+                            ],
+                            validate: function (v) {
+                                const nL = parseFloat(v[0]),
+                                    nW = parseFloat(v[1]);
+                                if (!isFinite(nL) || !isFinite(nW) || nL < 4 || nW < 4 || nL > 150 || nW > 120)
+                                    return 'Give a length 4–150m and a width 4–120m';
+                                return null;
+                            },
+                        }).then(function (v) {
+                            if (!v) return;
+                            setCustomPitch(parseFloat(v[0]), parseFloat(v[1]));
+                        });
                     });
                     addChip('Remove custom', function () {
                         if (board.area) {
@@ -7086,6 +7819,7 @@
                                     text: k,
                                     on: cur[team] === k,
                                     go: function () {
+                                        if (!stopForEdit()) return;
                                         pushUndo();
                                         applyFormation(team, k, frame);
                                         openSheet('shape');
@@ -7182,7 +7916,7 @@
                     const n = document.createElement('p');
                     n.className = 'note';
                     n.innerHTML =
-                        'Each one loads as a set of phases with a note on every picture. Press <b>Play</b> to run it, then drag anything you disagree with — they are starting points, not gospel. Loading replaces what is on screen; <b>Undo</b> puts it back.';
+                        'Each one loads as a set of phases with a note on every picture. Press <b>Play</b> to run it, then drag anything you disagree with — they are starting points, not gospel. Each play opens on its own board, so nothing you have drawn is overwritten.';
                     b.appendChild(n);
                     const names = PLAY_GROUPS.slice();
                     allPlays().forEach((pl) => {
@@ -7236,15 +7970,13 @@
                                     del.setAttribute('aria-label', 'Delete custom play ' + (pl.name || ''));
                                     del.addEventListener('click', function (ev) {
                                         ev.stopPropagation();
-                                        if (
-                                            !confirm(
-                                                'Delete your custom play “' +
-                                                    (pl.name || 'Untitled') +
-                                                    '”? The board on screen is not affected.',
-                                            )
-                                        )
-                                            return;
-                                        deleteCustomPlay(pl);
+                                        askConfirm(
+                                            'Delete “' + (pl.name || 'Untitled') + '”?',
+                                            'This removes your custom play. The board on screen is not affected.',
+                                            'Delete',
+                                        ).then(function (yes) {
+                                            if (yes) deleteCustomPlay(pl);
+                                        });
                                     });
                                     wrapEl.appendChild(el);
                                     wrapEl.appendChild(del);
@@ -7355,14 +8087,25 @@
                                 text: 'Add to my saved boards',
                                 on: true,
                                 go: function () {
-                                    writeLibrary(pi.boards.concat(library()).slice(0, MAX_BOARDS));
+                                    // Only add what fits. This used to trim the list to the cap after
+                                    // adding, which silently deleted your oldest saved boards.
+                                    const mine = library();
+                                    const room = Math.max(0, MAX_BOARDS - mine.length);
+                                    const take = pi.boards.slice(0, room);
+                                    const skipped = pi.boards.length - take.length;
+                                    if (!take.length) {
+                                        toast('You have ' + MAX_BOARDS + ' saved boards — delete some first');
+                                        return;
+                                    }
+                                    if (!writeLibrary(take.concat(mine))) return;
                                     pendingImport = null;
                                     openSheet('boards');
                                     toast(
                                         'Added ' +
-                                            pi.boards.length +
+                                            take.length +
                                             ' board' +
-                                            (pi.boards.length === 1 ? '' : 's'),
+                                            (take.length === 1 ? '' : 's') +
+                                            (skipped ? ' — ' + skipped + ' did not fit' : ''),
                                     );
                                 },
                             });
@@ -7370,18 +8113,19 @@
                                 text: 'Replace my saved boards',
                                 danger: true,
                                 go: function () {
-                                    if (
-                                        !confirm(
-                                            'Replace every saved board with the ' +
-                                                pi.boards.length +
-                                                ' in this file? This cannot be undone.',
-                                        )
-                                    )
-                                        return;
-                                    writeLibrary(pi.boards.slice(0, MAX_BOARDS));
-                                    pendingImport = null;
-                                    openSheet('boards');
-                                    toast('Saved boards replaced');
+                                    askConfirm(
+                                        'Replace your saved boards?',
+                                        'Every saved board is swapped for the ' +
+                                            pi.boards.length +
+                                            ' in this file. This cannot be undone — export a backup first if unsure.',
+                                        'Replace',
+                                    ).then(function (yes) {
+                                        if (!yes) return;
+                                        if (!writeLibrary(pi.boards.slice(0, MAX_BOARDS))) return;
+                                        pendingImport = null;
+                                        openSheet('boards');
+                                        toast('Saved boards replaced');
+                                    });
                                 },
                             });
                         }
@@ -7491,10 +8235,17 @@
                         const del = document.createElement('button');
                         del.className = 'chip danger';
                         del.textContent = 'Delete';
+                        del.setAttribute('aria-label', 'Delete saved board ' + rec.name);
+                        open.setAttribute('aria-label', 'Open saved board ' + rec.name);
+                        exp.setAttribute('aria-label', 'Export saved board ' + rec.name);
                         del.addEventListener('click', function () {
-                            if (!confirm('Delete “' + rec.name + '” from your saved boards?')) return;
-                            writeLibrary(library().filter((x) => x.id !== rec.id));
-                            openSheet('boards');
+                            askConfirm('Delete “' + rec.name + '”?', 'It will be removed from your saved boards.', 'Delete').then(
+                                function (yes) {
+                                    if (!yes) return;
+                                    if (writeLibrary(library().filter((x) => x.id !== rec.id))) toast('Deleted “' + rec.name + '”');
+                                    openSheet('boards');
+                                },
+                            );
                         });
                         row.appendChild(open);
                         row.appendChild(exp);
@@ -7965,15 +8716,36 @@
                     const mult = videoSlow ? 2 : 1;
                     buildFrameDurs(mult, fromIdx, toIdx);
                     const TITLE_MS = 900;
-                    const total = TITLE_MS + timelineTotalMs() + 400;
-                    setTimeout(function () {
+                    // The recorder used to be stopped by a setTimeout sized to the timeline. In a
+                    // throttled or backgrounded tab rAF stalls, the animation falls behind, and the
+                    // timer cut the video short. It is now stopped when playback really finishes.
+                    let finished = false,
+                        safety = null;
+                    function finishRecording() {
+                        if (finished) return;
+                        finished = true;
+                        clearTimeout(safety);
+                        if (onPlayComplete === finishRecording) onPlayComplete = null;
                         if (playing) {
                             playing = false;
+                            playingFrame = -1;
+                            playPausedAt = null;
                             renderFoot();
                             draw();
                         }
                         if (rec.state !== 'inactive') rec.stop();
-                    }, total);
+                    }
+                    // Safety net only: if playback never reaches its end (an exception, say), the
+                    // recording still ends. Time spent with the tab hidden does not count against it.
+                    const safetyMs = timelineTotalMs() * 3 + TITLE_MS;
+                    function armSafety() {
+                        safety = setTimeout(function () {
+                            if (playPausedAt != null || document.hidden) armSafety();
+                            else finishRecording();
+                        }, safetyMs);
+                    }
+                    armSafety();
+                    onPlayComplete = finishRecording;
                     runTitleCard(TITLE_MS, function () {
                         play(mult, fromIdx, toIdx);
                     });
@@ -8008,12 +8780,19 @@
                 function writeLibrary(list) {
                     try {
                         localStorage.setItem(KEY_LIB, JSON.stringify(list));
+                        return true;
                     } catch (e) {
-                        toast('Storage full — delete a board');
+                        toast('Storage full — nothing was saved. Delete a board and try again');
+                        return false;
                     }
                 }
                 function saveAs(name) {
                     const list = library();
+                    // At the cap, saving used to push the oldest saved board off the end unseen.
+                    if (list.length >= MAX_BOARDS) {
+                        toast('You have ' + MAX_BOARDS + ' saved boards — delete one to save another');
+                        return;
+                    }
                     const rec = {
                         id: uid(),
                         name: name,
@@ -8021,8 +8800,7 @@
                         data: JSON.parse(JSON.stringify(normaliseBoardModel(JSON.parse(JSON.stringify(board))))),
                     };
                     list.unshift(rec);
-                    writeLibrary(list.slice(0, MAX_BOARDS));
-                    toast('Saved “' + name + '”');
+                    if (writeLibrary(list)) toast('Saved “' + name + '”');
                     openSheet('boards');
                 }
                 function slugify(t) {
@@ -8392,7 +9170,16 @@
                     saveBoards();
                     setCurrentBoard(boardList.length - 1);
                 }
+                // The saved-board reader keeps at most 140 items; more than that used to be
+                // accepted on screen and then quietly lost on the next launch.
+                const MAX_TOKENS = 140;
+                function tokenRoom() {
+                    if (board.tokens.length < MAX_TOKENS) return true;
+                    toast('This board is full (' + MAX_TOKENS + ' items) — remove something first');
+                    return false;
+                }
                 function addToken(type, team) {
+                    if (!stopForEdit() || !tokenRoom()) return;
                     pushUndo();
                     const m = marks(),
                         v = viewRect();
@@ -8465,32 +9252,32 @@
                     w.appendChild(main);
 
                     const listDiv = document.createElement('div');
-                    listDiv.style.marginTop = '16px';
-                    listDiv.style.borderTop = '1px solid var(--chalk-line)';
-                    listDiv.style.paddingTop = '12px';
+                    listDiv.className = 'hboards';
                     const label = document.createElement('p');
-                    label.style.fontSize = '12px';
-                    label.style.fontWeight = '700';
-                    label.style.color = 'var(--chalk-dim)';
-                    label.textContent = 'Your saved boards (' + boardList.length + ')';
+                    label.className = 'hlabel';
+                    label.textContent = 'Your boards · ' + boardList.length;
                     listDiv.appendChild(label);
 
                     boardList.forEach((b, i) => {
                         const row = document.createElement('div');
-                        row.style.display = 'flex';
-                        row.style.alignItems = 'center';
-                        row.style.gap = '10px';
-                        row.style.padding = '6px 0';
-                        row.style.borderBottom = '1px solid var(--chalk-line)';
+                        row.className = 'hbrow' + (i === currentBoardIndex ? ' cur' : '');
                         const nameSpan = document.createElement('span');
-                        nameSpan.style.flex = '1';
-                        nameSpan.style.fontWeight = '600';
-                        nameSpan.textContent = b.name || 'Untitled';
+                        nameSpan.className = 'hbname';
+                        nameSpan.appendChild(elem('b', null, b.name || 'Untitled'));
+                        const nPh = (b.frames && b.frames.length) || 1;
+                        nameSpan.appendChild(
+                            elem(
+                                'span',
+                                null,
+                                (i === currentBoardIndex ? 'On screen · ' : '') +
+                                    nPh + ' phase' + (nPh === 1 ? '' : 's') +
+                                    (b.play && b.play.name ? ' · ' + b.play.name : ''),
+                            ),
+                        );
                         row.appendChild(nameSpan);
                         const switchBtn = document.createElement('button');
                         switchBtn.className = 'chip';
                         switchBtn.textContent = 'Open';
-                        switchBtn.style.fontSize = '13px';
                         switchBtn.style.minHeight = '44px';
                         switchBtn.setAttribute('aria-label', 'Open ' + (b.name || 'Untitled'));
                         if (i === currentBoardIndex) switchBtn.setAttribute('aria-current', 'true');
@@ -8503,17 +9290,25 @@
                             const delBtn = document.createElement('button');
                             delBtn.className = 'chip danger';
                             delBtn.textContent = '✕';
-                            delBtn.style.fontSize = '13px';
                             delBtn.style.minHeight = '44px';
                             delBtn.style.minWidth = '44px';
                             delBtn.setAttribute('aria-label', 'Delete ' + (b.name || 'Untitled'));
                             delBtn.addEventListener('click', function (e) {
                                 e.stopPropagation();
-                                if (confirm('Delete "' + (b.name || 'Untitled') + '"?')) {
-                                    deleteBoard(i);
+                                const target = b;
+                                askConfirm(
+                                    'Delete “' + (b.name || 'Untitled') + '”?',
+                                    'The board and all its phases are removed from this device.',
+                                    'Delete',
+                                ).then(function (yes) {
+                                    if (!yes) return;
+                                    // Find it again: the list may have changed while the question was up.
+                                    const idx = boardList.indexOf(target);
+                                    if (idx < 0) return;
+                                    deleteBoard(idx);
                                     if (boardList.length > 0) openHome();
                                     else closeHome();
-                                }
+                                });
                             });
                             row.appendChild(delBtn);
                         }
@@ -8741,12 +9536,12 @@
 <table>
   <tr><td><b>Team</b></td><td>Shows and hides the squad list down the left.</td></tr>
   <tr><td><b>Setup</b></td><td>Format, kit colours, full pitch or attacking half or final third, grass or whiteboard, numbers and names. Also custom pitch dimensions with presets.</td></tr>
-  <tr><td><b>Shape</b></td><td>Formations for either team, applied to the phase you are on.</td></tr>
+  <tr><td><b>More › Shape</b></td><td>Formations for either team, applied to the phase you are on.</td></tr>
   <tr><td><b>Add</b></td><td>Extra players, balls, cones, flat discs, mannequins and mini goals.</td></tr>
-  <tr><td><b>Boards</b></td><td>Save this board under a name, reopen an old one, or start again. Also export the phase as an SVG, and back boards up to a file.</td></tr>
-  <tr><td><b>Phase controls</b></td><td>Step between phases, add one, delete one, reorder with ▲/▼ or drag the handle (⠿), and save as a custom play.</td></tr>
+  <tr><td><b>More › Boards</b></td><td>Save this board under a name, reopen an old one, or start again. Also export the phase as an SVG, and back boards up to a file.</td></tr>
+  <tr><td><b>Phase controls</b></td><td>Step between phases with the arrows beside Play. Tap <b>Phase</b> to add, duplicate, delete, reorder or re-time a phase, set the playback speed and loop, and save a custom play.</td></tr>
   <tr><td><b>Play</b></td><td>Animates the players from phase to phase.</td></tr>
-  <tr><td><b>Image</b></td><td>Saves the phase you are on as a PNG.</td></tr>
+  <tr><td><b>More › Image</b></td><td>Saves the phase you are on as a PNG.</td></tr>
 </table>
 
 <h2 id="g-squad">The squad list</h2>
@@ -8772,15 +9567,15 @@
 <p>This is what turns a still picture into a pattern. A phase is a snapshot of where everyone stands. Build two or more and the board slides the players between them.</p>
 <ol class="steps">
   <li>Start with the clean board: Away are lined along the top, Home along the bottom, and the shirts are ready to drag into position.</li>
-  <li>Tap <b>+ Phase</b>. You now have a copy to work on.</li>
+  <li>Tap <b>Phase</b> › <b>Add phase</b>. You now have a copy to work on.</li>
   <li>Drag the players to where they should end up.</li>
   <li>Tap <b>Play</b>. Turn <b>Loop</b> on to run it round and round while you talk over it.</li>
 </ol>
-<p>Add as many phases as the pattern needs. Step between them with the arrows either side of the phase counter to check each picture on its own. Reorder phases using the ▲/▼ buttons or drag the handle (⠿) in the phase controls.</p>
+<p>Add as many phases as the pattern needs. Step between them with the arrows either side of the phase counter to check each picture on its own. Reorder phases with <b>Move earlier</b> and <b>Move later</b> under <b>Phase</b>.</p>
 
 <h2 id="g-plays">Ready-made plays</h2>
 <p>Tap <b>Plays</b> for a library of thirty-two set pieces and build-up patterns, already animated — twenty-seven of them corners and free kicks. Each one loads with three phases and a note on every picture explaining what is happening and why.</p>
-<p>You can also save your own custom plays using the <b>Save as play</b> button in the phase controls. Your custom plays appear in the Plays list under "Custom plays".</p>
+<p>You can also save your own custom plays under <b>Phase</b> › <b>Save these phases as a play</b>. Your custom plays appear in the Plays list under "Custom plays".</p>
 <table>
   <tr><td><b>Attacking corners</b></td><td>Back-post overload, near-post flick-on, near-post train, inswinger into the keeper, outswinger to the spot, empty the box and pull it back, recycle and re-cross, short corner.</td></tr>
   <tr><td><b>Defending corners</b></td><td>Zonal, man-marking, mixed with four zones and two markers, man-marking plus a spare, four in the six with two on the edge, keeper commands the six, defend to counter, defending the short.</td></tr>
@@ -8793,19 +9588,19 @@
 <h2 id="g-example">Worked example — a pressing trap in three phases</h2>
 <ol class="steps">
   <li><b>Phase 1, the trigger.</b> Setup → 11 v 11. Shape → 4-4-2 for Home, 4-3-3 for Away. Drag the ball to their right centre-back and draw a <b>Pass</b> arrow out to their full-back. Shade the touchline area with <b>Zone</b> — that is the trap.</li>
-  <li><b>Phase 2, the shift.</b> Tap <b>+ Phase</b>. Slide your whole block five yards across, send your left winger out to the full-back, and push your near striker across to cut the ball back inside. Draw <b>Run</b> arrows on the three players who have the furthest to travel.</li>
-  <li><b>Phase 3, the reward.</b> Tap <b>+ Phase</b>. Wipe the arrows, move the ball to your winger and draw two <b>Pass</b> arrows forward into the space their full-back has left.</li>
-  <li><b>Play it, loop it,</b> and hand the tablet round the huddle. Then tap <b>Image</b> on the phase that matters most and send it to the team chat.</li>
+  <li><b>Phase 2, the shift.</b> Tap <b>Phase</b> › <b>Add phase</b>. Slide your whole block five yards across, send your left winger out to the full-back, and push your near striker across to cut the ball back inside. Draw <b>Run</b> arrows on the three players who have the furthest to travel.</li>
+  <li><b>Phase 3, the reward.</b> Tap <b>Phase</b> › <b>Add phase</b>. Wipe the arrows, move the ball to your winger and draw two <b>Pass</b> arrows forward into the space their full-back has left.</li>
+  <li><b>Play it, loop it,</b> and hand the tablet round the huddle. Then open <b>More › Image</b> on the phase that matters most and send it to the team chat.</li>
 </ol>
 
 <h2 id="g-save">Saving, backing up and sharing</h2>
 <ul>
   <li>The board you are working on saves itself. Close the app, come back, it is still there.</li>
-  <li><b>Boards</b> → name it and tap Save to keep it. Build a library of patterns and reopen them at any session.</li>
-  <li><b>Image</b> saves the phase you are on as a PNG. You choose whether the coaching note is printed on it, and whether to save at screen resolution or double it for printing.</li>
+  <li><b>More › Boards</b> → name it and tap Save to keep it. Build a library of patterns and reopen them at any session.</li>
+  <li><b>More › Image</b> saves the phase you are on as a PNG. You choose whether the coaching note is printed on it, and whether to save at screen resolution or double it for printing.</li>
 </ul>
 <h3>Moving between tablets</h3>
-<p>Everything lives on the device, so a backup matters. In <b>Boards</b>:</p>
+<p>Everything lives on the device, so a backup matters. In <b>More › Boards</b>:</p>
 <ul>
   <li><b>Export this board</b> writes the board on screen to a <b>.json</b> file.</li>
   <li><b>Export everything</b> writes every saved board plus the current one to a single backup file.</li>
@@ -8843,9 +9638,11 @@
                     closeSheet();
                     select(null);
                     gated = !!gate;
-                    guideEl.innerHTML =
-                        '<div class="gtop"><h1>' + title + '</h1></div><div class="gbody">' + body + '</div>';
+                    // The title goes in as text, never markup, so a caller passing user input can't
+                    // inject HTML. (The body is app-authored help text and stays as HTML.)
+                    guideEl.innerHTML = '<div class="gtop"></div><div class="gbody">' + body + '</div>';
                     const top = guideEl.querySelector('.gtop');
+                    top.appendChild(elem('h1', null, title));
                     if (!gate) {
                         top.appendChild(
                             btn({ icon: 'close', label: 'Close', wide: true, aria: 'Close', go: closeGuide }),
@@ -8868,7 +9665,7 @@
                             const w = document.createElement('p');
                             w.className = 'gate-warn';
                             w.textContent =
-                                'This device is not letting the app store anything, so it will ask again next time and will not keep your boards. Private browsing is the usual cause. You can still work and use Boards › Export to save a file.';
+                                'This device is not letting the app store anything, so it will ask again next time and will not keep your boards. Private browsing is the usual cause. You can still work and use More › Boards › Export to save a file.';
                             bar.appendChild(w);
                         }
                         const row = document.createElement('div');
@@ -9123,7 +9920,7 @@
                         },
                         {
                             title: 'Add phases & play',
-                            desc: 'Press + Phase to add a snapshot. Drag players to new positions, then press Play to animate the sequence.',
+                            desc: 'Tap Phase (next to Play) and choose Add phase. Drag players to new positions, then press Play to animate the sequence.',
                         },
                         {
                             title: 'Save & switch boards',
@@ -9151,9 +9948,9 @@
                             target = document.querySelector('.btn[aria-label^="Move players"]');
                         else if (step === 2) target = document.querySelector('.btn[aria-label="Draw a run"]');
                         else if (step === 3)
-                            target = document.querySelector('.btn[aria-label="Add a phase"]');
+                            target = document.querySelector('.btn[aria-label="Phase options"]');
                         else if (step === 4)
-                            target = document.querySelector('.btn[aria-label="Back to the front page"]');
+                            target = document.querySelector('[aria-label="Back to the front page"]');
                         if (target) {
                             const rect = target.getBoundingClientRect();
                             const svgRect = document.querySelector('#tour-spotlight rect.highlight');
@@ -9257,6 +10054,7 @@
                         toast('Board saved');
                         return;
                     }
+                    if (dialogOpen) return;
                     if (typing) return;
                     if (gated) return;
                     // While recording, the keyboard would edit or stop the clip being captured.
@@ -9376,18 +10174,26 @@
                         Y <= capRect.y + capRect.h + 6;
                     if (!onCaption) {
                         if (cap) return;
-                        if (hitToken(X, Y, false)) return;
+                        if (hitToken(X, Y)) return;
                         if (board.captions === false) {
                             toast('Turn Phase notes on in Setup first');
                             return;
                         }
                     }
-                    const next = prompt('Note for phase ' + (frame + 1) + ':', cap);
-                    if (next === null) return;
-                    pushUndo();
-                    board.frames[frame].caption = next.slice(0, 300);
-                    draw();
-                    saveBoard();
+                    const fi = frame,
+                        target = board;
+                    askText('Note for phase ' + (fi + 1), 'Shown across the top of the picture, and on exported images.', cap, {
+                        label: 'Coaching note',
+                        maxLength: 300,
+                        multiline: true,
+                    }).then(function (next) {
+                        if (next === null || board !== target || !board.frames[fi]) return;
+                        if (!stopForEdit()) return;
+                        pushUndo();
+                        board.frames[fi].caption = next.slice(0, 300);
+                        draw();
+                        saveBoard();
+                    });
                 }
 
                 if (typeof window.matchMedia === 'function') {
@@ -9408,7 +10214,7 @@
                     lastErrorAt = now;
                     try {
                         toast(
-                            'Something went wrong — your work is still here. Use Boards › Export if in doubt.',
+                            'Something went wrong — your work is still here. Use More › Boards › Export if in doubt.',
                         );
                     } catch (e) {}
                 }
@@ -9472,6 +10278,7 @@
                     migrateKeys();
                     loadProfile();
                     loadUI();
+                    document.documentElement.classList.toggle('sun', sunMode);
                     try {
                         loadCustomPlays();
                     } catch (e) {
@@ -9519,6 +10326,54 @@
 
                 // Run with ?debug in the URL to get these in the console.
                 function selfTest() {
+                    // Only the self-test (?debug) uses this invariant checker, so it lives here.
+                    function boardModelIssues(b) {
+                        const issues = [];
+                        if (!b || !Array.isArray(b.tokens) || !Array.isArray(b.frames) || !b.frames.length) {
+                            issues.push('board/frames missing');
+                            return issues;
+                        }
+                        const ids = new Set();
+                        b.tokens.forEach(function (t) {
+                            if (!t || !t.id) issues.push('token missing id');
+                            else if (ids.has(t.id)) issues.push('duplicate token id: ' + t.id);
+                            else ids.add(t.id);
+                        });
+                        const phaseIds = new Set();
+                        b.frames.forEach(function (fr, fi) {
+                            if (!fr || !fr.id) issues.push('phase ' + fi + ' missing id');
+                            else if (phaseIds.has(fr.id)) issues.push('duplicate phase id: ' + fr.id);
+                            else phaseIds.add(fr.id);
+                            if (!fr.transition || typeof fr.transition !== 'object') issues.push('phase ' + fi + ' missing transition');
+                            else {
+                                if (fr.transition.duration != null && (!Number.isFinite(fr.transition.duration) || fr.transition.duration < 250 || fr.transition.duration > 10000))
+                                    issues.push('invalid transition duration: ' + fr.id);
+                                if (!['easeInOut'].includes(fr.transition.easing)) issues.push('invalid transition easing: ' + fr.id);
+                            }
+                            b.tokens.forEach(function (tk) {
+                                if (!fr.pos || !fr.pos[tk.id]) issues.push('missing position: ' + tk.id + '@' + fi);
+                            });
+                            (fr.shapes || []).forEach(function (sh) {
+                                if (!sh || !sh.id) issues.push('shape missing id @' + fi);
+                                if (PATH_TOOLS[sh.tool]) {
+                                    // Movement on the final phase is drawable but deliberately has no
+                                    // actor because it has no outgoing transition to animate.
+                                    const finalPhase = fi >= b.frames.length - 1;
+                                    if (!sh.actorId) {
+                                        if (!finalPhase) issues.push('movement missing actor: ' + (sh.id || '?'));
+                                    } else if (!ids.has(sh.actorId)) issues.push('orphan movement actor: ' + sh.actorId);
+                                    else {
+                                        const tk = b.tokens.find((t) => t.id === sh.actorId);
+                                        if (sh.tool === 'pass' && tk.type !== 'ball') issues.push('pass actor is not ball: ' + sh.id);
+                                        if (sh.tool !== 'pass' && tk.type !== 'player') issues.push('run actor is not player: ' + sh.id);
+                                    }
+                                    if (sh.fromPhaseId && sh.fromPhaseId !== fr.id) issues.push('movement fromPhase mismatch: ' + sh.id);
+                                    if (fi < b.frames.length - 1 && sh.toPhaseId && sh.toPhaseId !== b.frames[fi + 1].id) issues.push('movement toPhase mismatch: ' + sh.id);
+                                }
+                            });
+                        });
+                        return issues;
+                    }
                     const results = [];
                     const check = function (name, cond) {
                         results.push((cond ? 'pass  ' : 'FAIL  ') + name);
