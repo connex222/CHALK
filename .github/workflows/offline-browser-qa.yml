@@ -1,0 +1,33 @@
+name: Chalk tactical board acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - tools/qa-browser.js
+      - .github/workflows/offline-browser-qa.yml
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify test harness syntax
+        run: node --check tools/qa-browser.js
+      - name: Install browser test runner without changing production files
+        run: npm install --no-save --no-package-lock --no-audit --no-fund --ignore-scripts playwright@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run actual gameplay, persistence and disconnected-device browser checks
+        run: node tools/qa-browser.js
